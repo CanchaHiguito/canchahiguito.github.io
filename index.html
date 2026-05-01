@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Centro Deportivo Higuito — Puntos</title>
+  <meta name="theme-color" content="#000000">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.json">
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; width: 100%; overflow: hidden; }
+    body { font-family: Arial, sans-serif; background: #000; display: flex; flex-direction: column; }
+    .header { background: #000; padding: 20px 16px 14px; text-align: center; border-bottom: 3px solid #F9A825; flex-shrink: 0; padding-top: max(20px, env(safe-area-inset-top)); }
+    .header h1 { color: #F9A825; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 2px; }
+    .header h2 { color: #B71C1C; font-size: 26px; font-weight: 900; letter-spacing: 3px; }
+    .header p  { color: #fff; font-size: 11px; margin-top: 4px; opacity: 0.8; }
+    .pantallas { flex: 1; background: #fff; overflow-y: auto; position: relative; padding-bottom: env(safe-area-inset-bottom); }
+    .pantalla { display: none; min-height: 100%; padding: 24px 20px; }
+    .pantalla.activa { display: flex; flex-direction: column; justify-content: center; }
+    #pantalla-premio { display: none; min-height: 100%; flex-direction: column; }
+    #pantalla-premio.activa { display: flex; }
+    .input-group { margin-bottom: 16px; }
+    .input-group label { display: block; font-size: 13px; color: #555; margin-bottom: 6px; font-weight: bold; }
+    .input-group input { width: 100%; padding: 16px; border: 2px solid #ddd; border-radius: 8px; font-size: 20px; text-align: center; letter-spacing: 2px; }
+    .input-group input:focus { outline: none; border-color: #B71C1C; }
+    .btn-rojo { width: 100%; padding: 16px; background: #B71C1C; color: #fff; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 8px; }
+    .btn-rojo:active { background: #8B0000; }
+    .btn-verde { width: 100%; padding: 16px; background: #2E7D32; color: #fff; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 8px; }
+    .btn-gris { width: 100%; padding: 12px; background: #f5f5f5; color: #555; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; margin-top: 8px; }
+    .nota { font-size: 11px; color: #999; text-align: center; margin-top: 12px; line-height: 1.5; }
+    .cliente-info { background: #f5f5f5; border-left: 4px solid #B71C1C; padding: 12px; margin-bottom: 16px; border-radius: 4px; }
+    .cliente-info h3 { font-size: 18px; color: #111; margin-bottom: 2px; }
+    .cliente-info p  { font-size: 12px; color: #777; }
+    .puntos-display { text-align: center; margin-bottom: 12px; }
+    .puntos-numero  { font-size: 64px; font-weight: 900; color: #B71C1C; line-height: 1; }
+    .puntos-texto   { font-size: 13px; color: #777; margin-top: 4px; }
+    .barra-wrap   { margin-bottom: 12px; }
+    .barra-track  { background: #e0e0e0; border-radius: 20px; height: 16px; overflow: hidden; margin-bottom: 6px; }
+    .barra-fill   { background: #2E7D32; height: 100%; border-radius: 20px; transition: width 1s ease; }
+    .barra-labels { display: flex; justify-content: space-between; font-size: 11px; color: #999; }
+    .faltan        { text-align: center; font-size: 13px; color: #555; margin-bottom: 12px; }
+    .faltan strong { color: #B71C1C; }
+    .loading   { text-align: center; padding: 16px; color: #777; font-size: 14px; display: none; }
+    .error-msg { background: #FFEBEE; border-radius: 8px; padding: 12px; font-size: 13px; color: #B71C1C; text-align: center; margin-top: 12px; display: none; }
+    .qr-wrap { text-align: center; margin: 8px 0; }
+    .qr-wrap img { width: 180px; height: 180px; border: 3px solid #B71C1C; border-radius: 12px; padding: 8px; background: #fff; }
+    .qr-nota { font-size: 12px; color: #777; text-align: center; margin-top: 6px; }
+    .punto-asignado { background: #E8F5E9; border: 2px solid #2E7D32; border-radius: 10px; padding: 14px; text-align: center; display: none; margin-top: 8px; }
+    .punto-asignado .icono { font-size: 32px; margin-bottom: 4px; }
+    .punto-asignado p { font-size: 14px; color: #2E7D32; font-weight: bold; }
+    .countdown-cierre { font-size: 12px; color: #aaa; margin-top: 6px; }
+    .premio-header    { background: #000; padding: 24px 20px; text-align: center; border-bottom: 3px solid #F9A825; flex-shrink: 0; }
+    .premio-header h2 { color: #F9A825; font-size: 24px; font-weight: 900; }
+    .premio-header p  { color: #fff; font-size: 13px; margin-top: 4px; }
+    .premio-body      { padding: 24px 20px; text-align: center; flex: 1; display: flex; flex-direction: column; justify-content: center; }
+    .trofeo           { font-size: 72px; margin-bottom: 16px; }
+    .premio-texto     { font-size: 15px; color: #333; line-height: 1.7; margin-bottom: 20px; }
+    .seguridad-nota   { background: #FFF8E1; border: 1px solid #FFE082; border-radius: 8px; padding: 12px; font-size: 11px; color: #F57F17; line-height: 1.6; margin-top: 12px; }
+    .paso-box { background: #fff; padding: 8px 0; }
+    .paso-icono { font-size: 56px; text-align: center; margin-bottom: 16px; }
+    .paso-titulo { font-size: 22px; font-weight: 900; color: #111; text-align: center; margin-bottom: 8px; }
+    .paso-sub { font-size: 14px; color: #555; text-align: center; margin-bottom: 24px; line-height: 1.6; }
+    .instruccion-box { background: #f5f5f5; border-radius: 12px; padding: 16px; margin-bottom: 12px; display: flex; align-items: center; gap: 12px; }
+    .instruccion-box .paso-num { display: inline-flex; align-items: center; justify-content: center; background: #B71C1C; color: #fff; width: 28px; height: 28px; border-radius: 50%; font-size: 13px; font-weight: bold; flex-shrink: 0; }
+    .instruccion-box span { font-size: 14px; color: #333; line-height: 1.5; }
+    .sistema-box { background: #000; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+    .sistema-box p { color: #F9A825; font-size: 13px; text-align: center; line-height: 1.6; }
+    #pantalla-cargando { display: none; min-height: 100%; flex-direction: column; align-items: center; justify-content: center; padding: 32px 20px; text-align: center; }
+    #pantalla-cargando.activa { display: flex; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>Centro Deportivo</h1>
+    <h2>HIGUITO</h2>
+    <p>Sistema de puntos — Partido gratis en 10</p>
+  </div>
+
+  <div class="pantallas">
+
+    <div id="pantalla-cargando">
+      <div style="font-size:48px;margin-bottom:16px">⚽</div>
+      <p style="color:#777;font-size:14px">Cargando tus puntos...</p>
+    </div>
+
+    <div class="pantalla" id="pantalla-instalar">
+      <div class="paso-box">
+        <div class="paso-icono">⚽</div>
+        <div class="paso-titulo">¡Bienvenido a la promo!</div>
+        <div class="paso-sub">Jugá 10 partidos y ganás uno <strong>GRATIS</strong>. Para participar instalá la app en tu celular.</div>
+        <div class="sistema-box">
+          <p>🏆 Con la app instalada podés ver tus puntos y recibir promos exclusivas</p>
+        </div>
+        <div class="instruccion-box">
+          <div class="paso-num">1</div>
+          <span>Tocá los <strong>3 puntitos</strong> arriba a la derecha del navegador</span>
+        </div>
+        <div class="instruccion-box">
+          <div class="paso-num">2</div>
+          <span>Tocá <strong>"Agregar a pantalla de inicio"</strong> o <strong>"Instalar app"</strong></span>
+        </div>
+        <div class="instruccion-box">
+          <div class="paso-num">3</div>
+          <span>Tocá <strong>"Instalar"</strong> cuando aparezca el aviso</span>
+        </div>
+        <button class="btn-rojo" onclick="confirmarInstalacion()">✅ Ya la instalé — Continuar</button>
+        <p class="nota">Abrí la app desde el ícono ⚽ en tu pantalla de inicio</p>
+      </div>
+    </div>
+
+    <div class="pantalla" id="pantalla-notificaciones">
+      <div class="paso-box">
+        <div class="paso-icono">🔔</div>
+        <div class="paso-titulo">Activá las notificaciones</div>
+        <div class="paso-sub">Así te avisamos de promos, partidos gratis y novedades exclusivas de Higuito.</div>
+        <div class="sistema-box">
+          <p>📱 Las notificaciones llegan directo a tu celular como las de WhatsApp</p>
+        </div>
+        <button class="btn-rojo" id="btn-notif" onclick="pedirNotificaciones()">🔔 Activar notificaciones</button>
+        <button class="btn-gris" onclick="saltarNotificaciones()">Ahora no</button>
+        <p class="nota" id="notif-estado" style="margin-top:12px"></p>
+      </div>
+    </div>
+
+    <div class="pantalla" id="pantalla-numero">
+      <div class="input-group">
+        <label>Ingresá tu número de WhatsApp</label>
+        <input type="tel" id="input-telefono" placeholder="506XXXXXXXX" maxlength="11" autocomplete="off">
+      </div>
+      <button class="btn-rojo" onclick="verificarNumero()">Consultar mis puntos</button>
+      <div class="loading" id="loading-verificar">Verificando...</div>
+      <div class="error-msg" id="error-verificar"></div>
+      <p class="nota">Ingresá tu número con código de país. Ej: 50688881111</p>
+    </div>
+
+    <div class="pantalla" id="pantalla-cliente">
+      <div class="cliente-info">
+        <h3 id="cliente-nombre">Juan</h3>
+        <p id="cliente-telefono">506XXXXXXXX</p>
+      </div>
+      <div class="puntos-display">
+        <div class="puntos-numero" id="puntos-numero">0</div>
+        <div class="puntos-texto">puntos acumulados</div>
+      </div>
+      <div class="barra-wrap">
+        <div class="barra-track">
+          <div class="barra-fill" id="barra-fill" style="width:0%"></div>
+        </div>
+        <div class="barra-labels"><span>0</span><span>5</span><span>10</span></div>
+      </div>
+      <p class="faltan" id="faltan-texto">Te faltan <strong>10</strong> puntos para tu partido gratis</p>
+      <div class="qr-wrap" id="qr-wrap">
+        <img id="qr-cliente-imagen" src="" alt="Mi QR">
+        <p class="qr-nota">📲 Mostrá este QR al encargado</p>
+      </div>
+      <div class="punto-asignado" id="punto-asignado">
+        <div class="icono">✅</div>
+        <p>¡Punto registrado!</p>
+        <div class="countdown-cierre">Cerrando en <span id="cuenta-cierre">5</span> segundos...</div>
+      </div>
+    </div>
+
+    <div class="pantalla" id="pantalla-registro">
+      <div class="cliente-info" style="border-left: 4px solid #2E7D32;">
+        <h3 style="color:#2E7D32">📝 Registro en la promo</h3>
+        <p>Completá tus datos para participar</p>
+      </div>
+      <div class="input-group" style="margin-top:16px">
+        <label>Tu nombre</label>
+        <input type="text" id="reg-nombre" placeholder="Ej: Juan" autocomplete="off">
+      </div>
+      <div class="input-group">
+        <label>Número de cédula</label>
+        <input type="text" id="reg-cedula" placeholder="Ej: 110210948" autocomplete="off" inputmode="numeric">
+      </div>
+      <div class="input-group">
+        <label>Fecha de nacimiento</label>
+        <input type="text" id="reg-fecha" placeholder="DD/MM/AAAA" autocomplete="off" inputmode="numeric">
+      </div>
+      <button class="btn-rojo" onclick="registrarCliente()">Registrarme ⚽</button>
+      <div class="loading" id="loading-registro" style="display:none">Registrando...</div>
+      <div class="error-msg" id="error-registro" style="display:none"></div>
+      <p class="nota">🏆 Con 10 partidos jugados ganás uno GRATIS</p>
+    </div>
+
+    <div id="pantalla-premio">
+      <div class="premio-header">
+        <h2>🏆 ¡PARTIDO GRATIS!</h2>
+        <p>¡Llegaste a 10 puntos!</p>
+      </div>
+      <div class="premio-body">
+        <div class="trofeo">🎉</div>
+        <p class="premio-texto">
+          <strong>Este partido es GRATIS.</strong><br>
+          Mostrá esta pantalla al encargado ahora mismo para que confirme tu acceso gratuito.
+        </p>
+        <button class="btn-verde" onclick="canjearPremio()">Canjear partido gratis</button>
+        <div class="seguridad-nota">
+          El encargado recibió un mensaje por WhatsApp confirmando tu premio. Tus puntos volverán a 0 al canjear.
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+<script>
+  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyzpDCe_abY6qPBGhE7fPIZL8wjV5Fn7R4XBmhZxehKA5zDzrcyOIYbp8YdS6sAaw/exec';
+  const ONESIGNAL_APP_ID = 'd6d09ae0-c72c-4d74-a310-d8dcc0a831e3';
+  let telefonoActual = '';
+  let cuentaRegresivaInterval = null;
+  let pollingInterval = null;
+  let puntosAntes = 0;
+
+  // OneSignal apuntando a la raíz
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  OneSignalDeferred.push(async function(OneSignal) {
+    await OneSignal.init({
+      appId: ONESIGNAL_APP_ID,
+      notifyButton: { enable: false },
+      autoResubscribe: true,
+    });
+  });
+
+  window.onload = async function() {
+    const listo = localStorage.getItem('higuito_listo');
+    if (listo === 'ok') {
+      const telGuardado = localStorage.getItem('higuito_telefono');
+      if (telGuardado) {
+        telefonoActual = telGuardado;
+        mostrarPantalla('pantalla-cargando');
+        await cargarClienteDirecto(telGuardado);
+      } else {
+        mostrarPantalla('pantalla-numero');
+      }
+      return;
+    }
+    const instalo = localStorage.getItem('higuito_instalo');
+    if (instalo === 'ok') {
+      mostrarPantalla('pantalla-notificaciones');
+      return;
+    }
+    mostrarPantalla('pantalla-instalar');
+  };
+
+  function confirmarInstalacion() {
+    localStorage.setItem('higuito_instalo', 'ok');
+    mostrarPantalla('pantalla-notificaciones');
+  }
+
+  async function pedirNotificaciones() {
+    const btn = document.getElementById('btn-notif');
+    const estado = document.getElementById('notif-estado');
+    btn.disabled = true;
+    btn.textContent = '⏳ Activando...';
+    try {
+      await new Promise(resolve => {
+        OneSignalDeferred.push(async function(OneSignal) {
+          await OneSignal.Notifications.requestPermission();
+          const id = await OneSignal.User.PushSubscription.id;
+          if (id) {
+            localStorage.setItem('higuito_onesignal_id', id);
+            estado.textContent = '✅ ¡Notificaciones activadas!';
+            localStorage.setItem('higuito_notif', 'ok');
+          } else {
+            estado.textContent = '⚠️ No se pudo activar. Intentá luego.';
+          }
+          resolve();
+        });
+      });
+    } catch(e) {
+      console.log('Error OneSignal:', e);
+    }
+    setTimeout(() => continuar(), 1500);
+  }
+
+  async function continuar() {
+    localStorage.setItem('higuito_listo', 'ok');
+    const telGuardado = localStorage.getItem('higuito_telefono');
+    if (telGuardado) {
+      telefonoActual = telGuardado;
+      mostrarPantalla('pantalla-cargando');
+      await cargarClienteDirecto(telGuardado);
+    } else {
+      mostrarPantalla('pantalla-numero');
+    }
+  }
+
+  function saltarNotificaciones() { continuar(); }
+
+  async function cargarClienteDirecto(telefono) {
+    try {
+      const resp = await fetch(SCRIPT_URL + '?accion=verificar&telefono=' + telefono);
+      const data = await resp.json();
+      if (data.encontrado) {
+        mostrarCliente(data);
+      } else {
+        localStorage.removeItem('higuito_telefono');
+        mostrarPantalla('pantalla-numero');
+      }
+    } catch(e) {
+      mostrarPantalla('pantalla-numero');
+    }
+  }
+
+  function mostrarPantalla(id) {
+    document.querySelectorAll('.pantalla').forEach(p => p.classList.remove('activa'));
+    const cargando = document.getElementById('pantalla-cargando');
+    if (cargando) cargando.classList.remove('activa');
+    const premio = document.getElementById('pantalla-premio');
+    if (premio) { premio.classList.remove('activa'); premio.style.display = 'none'; }
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (id === 'pantalla-cargando') {
+      el.classList.add('activa');
+    } else if (el.classList.contains('pantalla')) {
+      el.classList.add('activa');
+    } else {
+      el.style.display = 'flex';
+      el.classList.add('activa');
+    }
+  }
+
+  async function verificarNumero() {
+    const telefono = document.getElementById('input-telefono').value.trim();
+    if (!telefono || telefono.length < 10) {
+      mostrarError('error-verificar', 'Ingresá un número válido con código de país.');
+      return;
+    }
+    document.getElementById('loading-verificar').style.display = 'block';
+    document.getElementById('error-verificar').style.display = 'none';
+    try {
+      const resp = await fetch(SCRIPT_URL + '?accion=verificar&telefono=' + telefono);
+      const data = await resp.json();
+      document.getElementById('loading-verificar').style.display = 'none';
+      if (data.encontrado) {
+        telefonoActual = telefono;
+        localStorage.setItem('higuito_telefono', telefono);
+        mostrarCliente(data);
+      } else {
+        telefonoActual = telefono;
+        mostrarPantalla('pantalla-registro');
+      }
+    } catch(e) {
+      document.getElementById('loading-verificar').style.display = 'none';
+      mostrarError('error-verificar', 'Error de conexión. Intentá de nuevo.');
+    }
+  }
+
+  function mostrarCliente(data) {
+    puntosAntes = parseInt(data.puntos) || 0;
+    document.getElementById('cliente-nombre').textContent   = data.nombre;
+    document.getElementById('cliente-telefono').textContent = telefonoActual;
+    document.getElementById('puntos-numero').textContent    = data.puntos;
+    const pct = Math.min((data.puntos / 10) * 100, 100);
+    document.getElementById('barra-fill').style.width = pct + '%';
+    const faltan = Math.max(10 - data.puntos, 0);
+    document.getElementById('faltan-texto').innerHTML = faltan > 0
+      ? 'Te faltan <strong>' + faltan + '</strong> punto' + (faltan > 1 ? 's' : '') + ' para tu partido gratis'
+      : '¡Ya podés canjear tu partido gratis!';
+    const hoy = new Date().toLocaleDateString('es-CR');
+    const ultimoPunto = data.ultimoPunto ? data.ultimoPunto.substring(0, 10) : '';
+    const fechaUltimo = ultimoPunto ? new Date(ultimoPunto.split('/').reverse().join('-')).toLocaleDateString('es-CR') : '';
+    if (fechaUltimo === hoy) {
+      document.getElementById('qr-wrap').style.display = 'none';
+      document.getElementById('punto-asignado').style.display = 'block';
+      document.getElementById('punto-asignado').querySelector('p').textContent = '✅ Ya registraste tu punto hoy';
+      document.getElementById('cuenta-cierre').parentElement.style.display = 'none';
+    } else {
+      document.getElementById('qr-wrap').style.display = 'block';
+      document.getElementById('punto-asignado').style.display = 'none';
+      generarQRCliente();
+      iniciarPolling();
+    }
+    mostrarPantalla('pantalla-cliente');
+  }
+
+  function generarQRCliente() {
+    const qrData = 'https://canchahiguito.github.io/encargado-scan.html?tel=' + telefonoActual;
+    const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=' + encodeURIComponent(qrData);
+    document.getElementById('qr-cliente-imagen').src = qrUrl;
+  }
+
+  function iniciarPolling() {
+    if (pollingInterval) clearInterval(pollingInterval);
+    pollingInterval = setInterval(async () => {
+      try {
+        const resp = await fetch(SCRIPT_URL + '?accion=verificar&telefono=' + telefonoActual);
+        const data = await resp.json();
+        if (data.encontrado) {
+          const puntosAhora = parseInt(data.puntos) || 0;
+          if (puntosAhora > puntosAntes) {
+            clearInterval(pollingInterval);
+            puntoDetectado(data);
+          }
+        }
+      } catch(e) {}
+    }, 3000);
+  }
+
+  function puntoDetectado(data) {
+    const puntos = parseInt(data.puntos) || 0;
+    if (puntos >= 10) { mostrarPantalla('pantalla-premio'); return; }
+    document.getElementById('puntos-numero').textContent = puntos;
+    const pct = Math.min((puntos / 10) * 100, 100);
+    document.getElementById('barra-fill').style.width = pct + '%';
+    const faltan = Math.max(10 - puntos, 0);
+    document.getElementById('faltan-texto').innerHTML = faltan > 0
+      ? 'Te faltan <strong>' + faltan + '</strong> punto' + (faltan > 1 ? 's' : '') + ' para tu partido gratis'
+      : '¡Ya podés canjear tu partido gratis!';
+    document.getElementById('qr-wrap').style.display = 'none';
+    document.getElementById('punto-asignado').style.display = 'block';
+    let segundos = 5;
+    document.getElementById('cuenta-cierre').textContent = segundos;
+    if (cuentaRegresivaInterval) clearInterval(cuentaRegresivaInterval);
+    cuentaRegresivaInterval = setInterval(() => {
+      segundos--;
+      const el = document.getElementById('cuenta-cierre');
+      if (el) el.textContent = segundos;
+      if (segundos <= 0) { clearInterval(cuentaRegresivaInterval); cerrarPWA(); }
+    }, 1000);
+  }
+
+  function cerrarPWA() {
+    document.querySelector('.header').style.display = 'none';
+    document.querySelector('.pantallas').style.display = 'none';
+    location.href = 'about:blank';
+  }
+
+  async function canjearPremio() {
+    try {
+      await fetch(SCRIPT_URL + '?accion=canjear&telefono=' + telefonoActual);
+      document.getElementById('pantalla-premio').innerHTML = `
+        <div style="background:#000;padding:24px 16px;text-align:center;border-bottom:3px solid #F9A825;flex-shrink:0;">
+          <h2 style="color:#F9A825;font-size:22px;font-weight:900;margin:0">✅ ¡Premio canjeado!</h2>
+          <p style="color:#fff;font-size:13px;margin-top:4px">Tus puntos volvieron a 0</p>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 20px;text-align:center;background:#fff;">
+          <div style="font-size:72px;margin-bottom:16px">⚽</div>
+          <p style="font-size:16px;color:#333;line-height:1.7;margin-bottom:24px">
+            <strong>¡Disfrutá tu partido gratis!</strong><br>Ya podés empezar a acumular puntos nuevamente.<br>¡Nos vemos en la cancha!
+          </p>
+          <button onclick="location.reload()" style="width:100%;padding:16px;background:#B71C1C;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:bold;cursor:pointer">
+            Volver al inicio
+          </button>
+        </div>`;
+    } catch(e) {
+      alert('Error al canjear. Mostrá la pantalla al encargado de todas formas.');
+    }
+  }
+
+  async function registrarCliente() {
+    const nombre = document.getElementById('reg-nombre').value.trim();
+    const cedula = document.getElementById('reg-cedula').value.trim();
+    const fecha = document.getElementById('reg-fecha').value.trim();
+    if (!nombre) { mostrarError('error-registro', 'Ingresá tu nombre.'); return; }
+    if (!cedula) { mostrarError('error-registro', 'Ingresá tu número de cédula.'); return; }
+    if (!fecha) { mostrarError('error-registro', 'Ingresá tu fecha de nacimiento.'); return; }
+    document.getElementById('loading-registro').style.display = 'block';
+    document.getElementById('error-registro').style.display = 'none';
+    try {
+      const resp = await fetch(SCRIPT_URL + '?accion=registrarCliente&telefono=' + telefonoActual + '&nombre=' + encodeURIComponent(nombre) + '&cedula=' + encodeURIComponent(cedula) + '&fechaNacimiento=' + encodeURIComponent(fecha));
+      const data = await resp.json();
+      document.getElementById('loading-registro').style.display = 'none';
+      if (data.ok) {
+        localStorage.setItem('higuito_telefono', telefonoActual);
+        document.getElementById('pantalla-registro').innerHTML = `
+          <div style="text-align:center;padding:24px 16px">
+            <div style="font-size:56px;margin-bottom:12px">🎉</div>
+            <h3 style="color:#2E7D32;font-size:20px;margin-bottom:8px">¡Registro exitoso!</h3>
+            <p style="color:#555;font-size:14px;line-height:1.7">
+              Bienvenido <strong>${nombre}</strong>.<br>
+              Ya podés mostrar tu QR al encargado.<br><br>
+              🏆 Con 10 partidos jugados ganás uno GRATIS.
+            </p>
+            <button class="btn-verde" style="margin-top:16px" onclick="location.reload()">
+              Ver mi QR ⚽
+            </button>
+          </div>
+        `;
+      } else {
+        mostrarError('error-registro', data.error || 'Error al registrar. Intentá de nuevo.');
+      }
+    } catch(e) {
+      document.getElementById('loading-registro').style.display = 'none';
+      mostrarError('error-registro', 'Error de conexión. Intentá de nuevo.');
+    }
+  }
+
+  function mostrarError(id, msg) {
+    const el = document.getElementById(id);
+    el.textContent   = msg;
+    el.style.display = 'block';
+  }
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js')
+        .then(reg => console.log('SW registrado:', reg.scope))
+        .catch(err => console.log('SW error:', err));
+    });
+  }
+</script>
+
+</body>
+</html>
