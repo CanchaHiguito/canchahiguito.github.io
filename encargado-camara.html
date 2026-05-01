@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Escáner Cámara — Higuito</title>
+  <meta name="theme-color" content="#000000">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background: #000; min-height: 100vh; display: flex; flex-direction: column; }
+    .header { background: #000; padding: 16px; text-align: center; border-bottom: 3px solid #F9A825; }
+    .header h1 { color: #F9A825; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; }
+    .header h2 { color: #B71C1C; font-size: 20px; font-weight: 900; }
+    .camara-wrap { flex: 1; overflow: hidden; min-height: 400px; }
+    #reader { width: 100%; height: 100%; }
+    .resultado { position: fixed; bottom: 0; left: 0; right: 0; padding: 20px; display: none; z-index: 50; }
+    .resultado.ok { background: rgba(46,125,50,0.97); }
+    .resultado.error { background: rgba(183,28,28,0.97); }
+    .resultado.ya { background: rgba(245,127,23,0.97); }
+    .resultado h3 { color: #fff; font-size: 20px; font-weight: 900; margin-bottom: 4px; }
+    .resultado p { color: rgba(255,255,255,0.9); font-size: 14px; margin-bottom: 12px; }
+    .puntos-big { font-size: 56px; font-weight: 900; color: #fff; line-height: 1; margin-bottom: 4px; }
+    .btn-siguiente { width: 100%; padding: 16px; background: #fff; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; color: #2E7D32; }
+    .btn-volver { position: fixed; top: 70px; left: 16px; background: rgba(0,0,0,0.6); color: #fff; border: 1px solid #555; padding: 8px 14px; border-radius: 20px; font-size: 12px; cursor: pointer; z-index: 60; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>Centro Deportivo</h1>
+    <h2>HIGUITO</h2>
+  </div>
+
+  <div class="camara-wrap">
+    <div id="reader"></div>
+  </div>
+
+  <div class="resultado" id="resultado">
+    <h3 id="res-titulo">...</h3>
+    <div class="puntos-big" id="res-puntos" style="display:none"></div>
+    <p id="res-texto">...</p>
+    <button class="btn-siguiente" onclick="siguienteEscaneo()">✅ Listo — Siguiente cliente</button>
+  </div>
+
+  <button class="btn-volver" onclick="window.location.href='admin.html'">← Admin</button>
+
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyzpDCe_abY6qPBGhE7fPIZL8wjV5Fn7R4XBmhZxehKA5zDzrcyOIYbp8YdS6sAaw/exec';
+  let procesando = false;
+
+  window.onload = function() {
+    const html5QrCode = new Html5Qrcode("reader");
+    html5QrCode.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: { width: 220, height: 220 } },
+      onQRDetectado,
+      () => {}
+    ).catch(() => {
+      document.querySelector('.camara-wrap').innerHTML = `
+        <div style="color:#fff;text-align:center;padding:32px 20px;">
+          <div style="font-size:48px;margin-bottom:16px">📷</div>
+          <p>No se pudo acceder a la cámara.<br>Permitá el acceso en la configuración.</p>
+        </div>`;
+    });
+  };
+
+  async function onQRDetectado(decodedText) {
+    if (procesando) return;
+    const match = decodedText.match(/[?&]tel=([^&]+)/);
+    if (!match) return;
+    procesando = true;
+    await sumarPunto(match[1]);
+  }
+
+  async function sumarPunto(telefono) {
+    try {
+      const resp = await fetch(SCRIPT_URL + '?accion=sumarPunto&telefono=' + telefono);
+      const data = await resp.json();
+      const res = document.getElementById('resultado');
+      if (data.ok) {
+        if (data.premio) {
+          res.className = 'resultado ok';
+          document.getElementById('res-titulo').textContent = '🏆 ¡PARTIDO GRATIS!';
+          document.getElementById('res-puntos').style.display = 'none';
+          document.getElementById('res-texto').textContent = 'Este cliente llegó a 10 puntos. Autorizá el acceso gratuito.';
+        } else {
+          res.className = 'resultado ok';
+          document.getElementById('res-titulo').textContent = '✅ ¡Punto sumado!';
+          document.getElementById('res-puntos').style.display = 'block';
+          document.getElementById('res-puntos').textContent = data.puntos;
+          document.getElementById('res-texto').textContent = 'Le faltan ' + Math.max(10 - data.puntos, 0) + ' puntos para partido gratis';
+        }
+      } else if (data.motivo === 'ya_registrado') {
+        res.className = 'resultado ya';
+        document.getElementById('res-titulo').textContent = '⚠️ Ya registrado hoy';
+        document.getElementById('res-puntos').style.display = 'none';
+        document.getElementById('res-texto').textContent = 'Este cliente ya sumó su punto hoy.';
+      } else {
+        res.className = 'resultado error';
+        document.getElementById('res-titulo').textContent = '❌ Error';
+        document.getElementById('res-puntos').style.display = 'none';
+        document.getElementById('res-texto').textContent = data.error || 'No se pudo procesar.';
+      }
+      res.style.display = 'block';
+    } catch(e) {
+      const res = document.getElementById('resultado');
+      res.className = 'resultado error';
+      document.getElementById('res-titulo').textContent = '❌ Error de conexión';
+      document.getElementById('res-puntos').style.display = 'none';
+      document.getElementById('res-texto').textContent = 'Intentá de nuevo.';
+      res.style.display = 'block';
+      procesando = false;
+    }
+  }
+
+  function siguienteEscaneo() {
+    document.getElementById('resultado').style.display = 'none';
+    document.getElementById('resultado').className = 'resultado';
+    procesando = false;
+  }
+</script>
+</body>
+</html>
