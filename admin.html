@@ -55,6 +55,12 @@
     .push-grupo input, .push-grupo textarea { width: 100%; padding: 12px; background: #111; border: 1px solid #333; border-radius: 8px; color: #fff; font-size: 14px; font-family: Arial, sans-serif; }
     .push-grupo textarea { height: 80px; resize: none; }
     .push-grupo input:focus, .push-grupo textarea:focus { outline: none; border-color: #42A5F5; }
+    .segmentos { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+    .seg-btn { padding: 8px 14px; border-radius: 20px; border: 1px solid #333; background: #111; color: #aaa; font-size: 13px; cursor: pointer; }
+    .seg-btn.activo { background: #1565C0; border-color: #1565C0; color: #fff; }
+    .edades-custom { display: none; margin-top: 8px; }
+    .edades-custom.visible { display: block; }
+    .edades-hint { font-size: 11px; color: #666; margin-top: 6px; }
     .btn-enviar { width: 100%; padding: 18px; background: #1565C0; color: #fff; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 8px; }
     .btn-enviar:active { background: #0D47A1; }
     .btn-enviar:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -68,6 +74,7 @@
     .preview-notif .icono { font-size: 28px; }
     .preview-notif .texto h4 { color: #fff; font-size: 14px; font-weight: bold; }
     .preview-notif .texto p { color: #aaa; font-size: 12px; margin-top: 2px; }
+    .contador-badge { background: #1565C0; color: #fff; border-radius: 20px; padding: 4px 10px; font-size: 12px; display: inline-block; margin-top: 8px; }
   </style>
 </head>
 <body>
@@ -118,7 +125,7 @@
       </button>
       <button class="admin-btn push" onclick="abrirSeccion('push')">
         <div class="icono">🔔</div>
-        <div class="info"><h3>Notificaciones Push</h3><p>Enviar notificaciones a todos los clientes</p></div>
+        <div class="info"><h3>Notificaciones Push</h3><p>Enviar notificaciones segmentadas por edad</p></div>
       </button>
     </div>
   </div>
@@ -129,6 +136,8 @@
       <button class="btn-cerrar-admin" onclick="cerrarPush()">✕ Cerrar</button>
     </div>
     <div class="push-body">
+
+      <!-- Preview -->
       <div class="preview-box">
         <div class="preview-titulo">Vista previa</div>
         <div class="preview-notif">
@@ -139,26 +148,56 @@
           </div>
         </div>
       </div>
+
+      <!-- Título -->
       <div class="push-grupo">
         <label>Título</label>
         <input type="text" id="push-titulo" placeholder="Ej: ¡Promo especial este viernes!" oninput="actualizarPreview()">
       </div>
+
+      <!-- Mensaje -->
       <div class="push-grupo">
         <label>Mensaje</label>
-        <textarea id="push-mensaje" placeholder="Ej: 2x1 en canchas de 8pm a 10pm." oninput="actualizarPreview()"></textarea>
+        <textarea id="push-mensaje" placeholder="Ej: 2x1 en canchas de 8pm a 10pm. ¡Solo para clientes Higuito!" oninput="actualizarPreview()"></textarea>
       </div>
+
+      <!-- Imagen -->
       <div class="push-grupo">
         <label>Imagen (URL opcional)</label>
         <input type="text" id="push-imagen" placeholder="https://... (URL de una imagen)">
       </div>
+
+      <!-- URL -->
       <div class="push-grupo">
         <label>Enlace al tocar la notificación</label>
         <input type="text" id="push-url" value="https://canchahiguito.github.io">
       </div>
+
+      <!-- Segmento por edad -->
+      <div class="push-grupo">
+        <label>Enviar a — Segmento por edad</label>
+        <div class="segmentos">
+          <button class="seg-btn activo" id="seg-todos" onclick="selSegmento('todos')">👥 Todos</button>
+          <button class="seg-btn" id="seg-sub18" onclick="selSegmento('sub18')">🧒 Sub-18</button>
+          <button class="seg-btn" id="seg-18a35" onclick="selSegmento('18a35')">🧑 18-35 años</button>
+          <button class="seg-btn" id="seg-35mas" onclick="selSegmento('35mas')">👨 35+ años</button>
+          <button class="seg-btn" id="seg-custom" onclick="selSegmento('custom')">✏️ Edades específicas</button>
+        </div>
+        <div class="edades-custom" id="edades-custom">
+          <input type="text" id="edades-input" placeholder="Ej: 20-35 o 25,30,40 o 18-25,30,35-40" style="width:100%;padding:12px;background:#111;border:1px solid #333;border-radius:8px;color:#fff;font-size:14px;">
+          <p class="edades-hint">Usá rangos con guión (20-35), edades exactas separadas por coma (25,30), o combinaciones</p>
+        </div>
+        <div id="contador-suscriptores" class="contador-badge" style="display:none">
+          Calculando suscriptores...
+        </div>
+      </div>
+
       <button class="btn-enviar" id="btn-enviar" onclick="enviarNotificacion()">🔔 Enviar notificación</button>
+
       <div class="push-resultado" id="push-resultado">
         <p id="push-resultado-texto"></p>
       </div>
+
     </div>
   </div>
 
@@ -168,6 +207,7 @@
   const PIN_ADMIN = '1234';
   let procesando = false;
   let html5QrCode = null;
+  let segmentoActual = 'todos';
 
   window.onload = function() { iniciarEscaner(); };
 
@@ -292,14 +332,30 @@
     document.getElementById('preview-mensaje-text').textContent = mensaje;
   }
 
+  function selSegmento(seg) {
+    segmentoActual = seg;
+    document.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('activo'));
+    document.getElementById('seg-' + seg).classList.add('activo');
+    const customDiv = document.getElementById('edades-custom');
+    if (seg === 'custom') {
+      customDiv.classList.add('visible');
+    } else {
+      customDiv.classList.remove('visible');
+    }
+  }
+
   async function enviarNotificacion() {
     const titulo = document.getElementById('push-titulo').value.trim();
     const mensaje = document.getElementById('push-mensaje').value.trim();
     const imagen = document.getElementById('push-imagen').value.trim();
     const url = document.getElementById('push-url').value.trim();
+    const edadesCustom = document.getElementById('edades-input').value.trim();
 
     if (!titulo) { alert('Escribí un título para la notificación.'); return; }
     if (!mensaje) { alert('Escribí un mensaje para la notificación.'); return; }
+    if (segmentoActual === 'custom' && !edadesCustom) {
+      alert('Escribí las edades a las que querés enviar.'); return;
+    }
 
     document.getElementById('btn-enviar').disabled = true;
     document.getElementById('btn-enviar').textContent = '⏳ Enviando...';
@@ -311,7 +367,9 @@
         titulo: titulo,
         mensaje: mensaje,
         imagen: imagen,
-        url: url
+        url: url,
+        segmento: segmentoActual,
+        edades: edadesCustom
       });
 
       const resp = await fetch(SCRIPT_URL + '?' + params.toString());
@@ -322,10 +380,13 @@
 
       if (data.id) {
         res.className = 'push-resultado ok';
-        texto.textContent = '✅ Notificación enviada correctamente.';
+        texto.textContent = '✅ Notificación enviada correctamente a ' + (data.recipients || 'todos los') + ' suscriptores.';
+      } else if (data.error) {
+        res.className = 'push-resultado error';
+        texto.textContent = '❌ ' + data.error;
       } else {
         res.className = 'push-resultado error';
-        texto.textContent = '❌ Error: ' + (data.errors ? JSON.stringify(data.errors) : JSON.stringify(data));
+        texto.textContent = '❌ Error: ' + JSON.stringify(data);
       }
       res.style.display = 'block';
 
