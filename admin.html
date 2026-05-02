@@ -78,6 +78,19 @@
     .wa-preview .wa-icono { font-size: 22px; }
     .wa-preview p { color: #aaa; font-size: 12px; }
     .wa-preview strong { color: #25D366; }
+    .drop-zone { border: 2px dashed #333; border-radius: 12px; padding: 24px; text-align: center; cursor: pointer; transition: border-color 0.2s; position: relative; }
+    .drop-zone:hover, .drop-zone.dragover { border-color: #42A5F5; }
+    .drop-zone input[type=file] { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+    .drop-zone .drop-icono { font-size: 36px; margin-bottom: 8px; }
+    .drop-zone p { color: #aaa; font-size: 13px; }
+    .drop-zone .drop-hint { font-size: 11px; color: #555; margin-top: 4px; }
+    .img-preview { display: none; margin-top: 12px; border-radius: 8px; overflow: hidden; }
+    .img-preview img { width: 100%; max-height: 160px; object-fit: cover; border-radius: 8px; }
+    .img-estado { font-size: 12px; margin-top: 6px; text-align: center; }
+    .img-estado.subiendo { color: #F9A825; }
+    .img-estado.ok { color: #2E7D32; }
+    .img-estado.error { color: #B71C1C; }
+    .btn-quitar { background: none; border: 1px solid #555; color: #aaa; padding: 4px 10px; border-radius: 6px; font-size: 11px; cursor: pointer; margin-top: 6px; }
   </style>
 </head>
 <body>
@@ -142,7 +155,7 @@
 
       <!-- Preview -->
       <div class="preview-box">
-        <div class="preview-titulo">Vista previa de la notificación</div>
+        <div class="preview-titulo">Vista previa</div>
         <div class="preview-notif">
           <div class="icono">⚽</div>
           <div class="texto">
@@ -165,7 +178,7 @@
       <!-- Mensaje notificación -->
       <div class="push-grupo">
         <label>Mensaje de la notificación</label>
-        <textarea id="push-mensaje" placeholder="Ej: 2x1 en canchas de 8pm a 10pm. ¡Solo para clientes Higuito!" oninput="actualizarPreview()"></textarea>
+        <textarea id="push-mensaje" placeholder="Ej: 2x1 en canchas de 8pm a 10pm." oninput="actualizarPreview()"></textarea>
       </div>
 
       <!-- Mensaje WhatsApp -->
@@ -175,10 +188,20 @@
         <p class="hint">Este mensaje aparecerá pre-escrito en WhatsApp cuando el cliente toque la notificación</p>
       </div>
 
-      <!-- Imagen -->
+      <!-- Imagen con drag & drop -->
       <div class="push-grupo">
-        <label>Imagen (URL opcional)</label>
-        <input type="text" id="push-imagen" placeholder="https://... (URL de una imagen)">
+        <label>🖼️ Imagen de la notificación (opcional)</label>
+        <div class="drop-zone" id="drop-zone" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+          <input type="file" id="file-input" accept="image/*" onchange="onFileSelected(event)">
+          <div class="drop-icono">🖼️</div>
+          <p>Arrastrá tu imagen aquí</p>
+          <p class="drop-hint">o tocá para seleccionar desde tu computadora</p>
+        </div>
+        <div class="img-preview" id="img-preview">
+          <img id="img-preview-img" src="" alt="Preview">
+          <p class="img-estado" id="img-estado"></p>
+          <button class="btn-quitar" onclick="quitarImagen()">✕ Quitar imagen</button>
+        </div>
       </div>
 
       <!-- Segmento -->
@@ -192,8 +215,8 @@
           <button class="seg-btn" id="seg-custom" onclick="selSegmento('custom')">✏️ Edades específicas</button>
         </div>
         <div class="edades-custom" id="edades-custom">
-          <input type="text" id="edades-input" placeholder="Ej: 20-35 o 25,30,40 o 18-25,30,35-40" style="width:100%;padding:12px;background:#111;border:1px solid #333;border-radius:8px;color:#fff;font-size:14px;">
-          <p class="hint">Usá rangos con guión (20-35), edades exactas separadas por coma (25,30), o combinaciones</p>
+          <input type="text" id="edades-input" placeholder="Ej: 20-35 o 25,30,40" style="width:100%;padding:12px;background:#111;border:1px solid #333;border-radius:8px;color:#fff;font-size:14px;">
+          <p class="hint">Rangos con guión (20-35), edades exactas separadas por coma (25,30)</p>
         </div>
       </div>
 
@@ -209,10 +232,12 @@
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
   const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyzpDCe_abY6qPBGhE7fPIZL8wjV5Fn7R4XBmhZxehKA5zDzrcyOIYbp8YdS6sAaw/exec';
+  const IMGBB_API_KEY = '79d891f29823a6a596b4672c74a8d232';
   const PIN_ADMIN = '1234';
   let procesando = false;
   let html5QrCode = null;
   let segmentoActual = 'todos';
+  let imagenUrl = '';
 
   window.onload = function() { iniciarEscaner(); };
 
@@ -351,11 +376,82 @@
     }
   }
 
+  // Drag & Drop
+  function onDragOver(e) {
+    e.preventDefault();
+    document.getElementById('drop-zone').classList.add('dragover');
+  }
+
+  function onDragLeave(e) {
+    document.getElementById('drop-zone').classList.remove('dragover');
+  }
+
+  function onDrop(e) {
+    e.preventDefault();
+    document.getElementById('drop-zone').classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) {
+      procesarImagen(file);
+    }
+  }
+
+  function onFileSelected(e) {
+    const file = e.target.files[0];
+    if (file) procesarImagen(file);
+  }
+
+  function procesarImagen(file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      document.getElementById('img-preview-img').src = e.target.result;
+      document.getElementById('img-preview').style.display = 'block';
+      document.getElementById('drop-zone').style.display = 'none';
+      subirImagen(file);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function subirImagen(file) {
+    const estado = document.getElementById('img-estado');
+    estado.textContent = '⏳ Subiendo imagen...';
+    estado.className = 'img-estado subiendo';
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      formData.append('key', IMGBB_API_KEY);
+      const resp = await fetch('https://api.imgbb.com/1/upload', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await resp.json();
+      if (data.success) {
+        imagenUrl = data.data.url;
+        estado.textContent = '✅ Imagen lista para enviar';
+        estado.className = 'img-estado ok';
+      } else {
+        estado.textContent = '❌ Error al subir imagen';
+        estado.className = 'img-estado error';
+        imagenUrl = '';
+      }
+    } catch(e) {
+      estado.textContent = '❌ Error de conexión al subir';
+      estado.className = 'img-estado error';
+      imagenUrl = '';
+    }
+  }
+
+  function quitarImagen() {
+    imagenUrl = '';
+    document.getElementById('img-preview').style.display = 'none';
+    document.getElementById('drop-zone').style.display = 'block';
+    document.getElementById('file-input').value = '';
+    document.getElementById('img-estado').textContent = '';
+  }
+
   async function enviarNotificacion() {
     const titulo = document.getElementById('push-titulo').value.trim();
     const mensaje = document.getElementById('push-mensaje').value.trim();
     const waMensaje = document.getElementById('push-wa-mensaje').value.trim();
-    const imagen = document.getElementById('push-imagen').value.trim();
     const edadesCustom = document.getElementById('edades-input').value.trim();
 
     if (!titulo) { alert('Escribí un título para la notificación.'); return; }
@@ -365,7 +461,12 @@
       alert('Escribí las edades a las que querés enviar.'); return;
     }
 
-    // Generar URL de WhatsApp
+    // Verificar si la imagen todavía se está subiendo
+    const estadoImg = document.getElementById('img-estado').textContent;
+    if (estadoImg.includes('Subiendo')) {
+      alert('Esperá que termine de subir la imagen.'); return;
+    }
+
     const waUrl = 'https://canchahiguito.github.io/wa.html?msg=' + encodeURIComponent(waMensaje);
 
     document.getElementById('btn-enviar').disabled = true;
@@ -377,7 +478,7 @@
         accion: 'enviarPush',
         titulo: titulo,
         mensaje: mensaje,
-        imagen: imagen,
+        imagen: imagenUrl,
         url: waUrl,
         segmento: segmentoActual,
         edades: edadesCustom
