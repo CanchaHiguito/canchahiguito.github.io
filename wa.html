@@ -9,21 +9,34 @@
     body { font-family: Arial, sans-serif; background: #000; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
     .logo { font-size: 64px; margin-bottom: 16px; }
     h2 { color: #F9A825; font-size: 22px; font-weight: 900; letter-spacing: 3px; margin-bottom: 8px; }
-    p { color: #fff; font-size: 14px; opacity: 0.8; }
+    p { color: #fff; font-size: 14px; opacity: 0.8; margin-bottom: 24px; }
+    .btn-wa { background: #25D366; color: #fff; border: none; padding: 16px 32px; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer; text-decoration: none; display: inline-block; }
   </style>
 </head>
 <body>
   <div class="logo">⚽</div>
   <h2>HIGUITO</h2>
-  <p>Abriendo WhatsApp...</p>
+  <p>Tocá el botón para abrir WhatsApp</p>
+  <a id="wa-btn" class="btn-wa" href="#">💬 Abrir WhatsApp</a>
   <script>
     const params = new URLSearchParams(window.location.search);
     const mensaje = params.get('msg') || 'Hola, vi la promo de Higuito y quiero más información ⚽';
     const numero = '50663159767';
-    const url = 'https://wa.me/' + numero + '?text=' + encodeURIComponent(mensaje);
+    const isAndroid = /android/i.test(navigator.userAgent);
+    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    let url;
+    if (isAndroid) {
+      url = 'intent://send/' + numero + '#Intent;scheme=smsto;package=com.whatsapp;action=android.intent.action.SENDTO;end';
+    } else if (isIOS) {
+      url = 'whatsapp://send?phone=' + numero + '&text=' + encodeURIComponent(mensaje);
+    } else {
+      url = 'https://wa.me/' + numero + '?text=' + encodeURIComponent(mensaje);
+    }
+    document.getElementById('wa-btn').href = url;
+    // Intentar abrir automáticamente
     setTimeout(function() {
       window.location.href = url;
-    }, 800);
+    }, 500);
   </script>
 </body>
 </html>
