@@ -6,27 +6,39 @@
   <title>Centro Deportivo Higuito</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: Arial, sans-serif; background: #000; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
+    body { font-family: Arial, sans-serif; background: #000; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; }
     .logo { font-size: 64px; margin-bottom: 16px; }
     h2 { color: #F9A825; font-size: 22px; font-weight: 900; letter-spacing: 3px; margin-bottom: 8px; }
     p { color: #fff; font-size: 14px; opacity: 0.8; margin-bottom: 24px; }
-    .btn-wa { background: #25D366; color: #fff; border: none; padding: 16px 32px; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer; text-decoration: none; display: inline-block; }
+    .btn-wa { background: #25D366; color: #fff; border: none; padding: 18px 32px; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer; text-decoration: none; display: inline-block; margin-bottom: 12px; width: 100%; max-width: 300px; }
   </style>
 </head>
 <body>
   <div class="logo">⚽</div>
   <h2>HIGUITO</h2>
-  <p>Tocá el botón para abrir WhatsApp</p>
-  <a id="wa-btn" class="btn-wa" href="#">💬 Abrir WhatsApp</a>
+  <p id="msg-preview"></p>
+  <a id="wa-btn" class="btn-wa" href="#">💬 Escribir a Higuito</a>
+
   <script>
     const params = new URLSearchParams(window.location.search);
     const mensaje = params.get('msg') || 'Hola, vi la promo de Higuito y quiero más información ⚽';
     const numero = '50663159767';
-    const url = 'https://wa.me/' + numero + '?text=' + encodeURIComponent(mensaje);
-    document.getElementById('wa-btn').href = url;
+
+    document.getElementById('msg-preview').textContent = '"' + mensaje + '"';
+
+    // Intentar abrir la app nativa primero
+    const appUrl = 'whatsapp://send?phone=' + numero + '&text=' + encodeURIComponent(mensaje);
+    const webUrl = 'https://api.whatsapp.com/send?phone=' + numero + '&text=' + encodeURIComponent(mensaje);
+
+    document.getElementById('wa-btn').href = appUrl;
+
+    // Intentar abrir automáticamente la app
+    window.location.href = appUrl;
+
+    // Si después de 2 segundos sigue en esta página, mostrar el botón
     setTimeout(function() {
-      window.location.href = url;
-    }, 500);
+      document.getElementById('wa-btn').href = webUrl;
+    }, 2000);
   </script>
 </body>
 </html>
