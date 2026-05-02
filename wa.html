@@ -22,18 +22,8 @@
     const params = new URLSearchParams(window.location.search);
     const mensaje = params.get('msg') || 'Hola, vi la promo de Higuito y quiero más información ⚽';
     const numero = '50663159767';
-    const isAndroid = /android/i.test(navigator.userAgent);
-    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-    let url;
-    if (isAndroid) {
-      url = 'intent://send/' + numero + '#Intent;scheme=smsto;package=com.whatsapp;action=android.intent.action.SENDTO;end';
-    } else if (isIOS) {
-      url = 'whatsapp://send?phone=' + numero + '&text=' + encodeURIComponent(mensaje);
-    } else {
-      url = 'https://wa.me/' + numero + '?text=' + encodeURIComponent(mensaje);
-    }
+    const url = 'https://wa.me/' + numero + '?text=' + encodeURIComponent(mensaje);
     document.getElementById('wa-btn').href = url;
-    // Intentar abrir automáticamente
     setTimeout(function() {
       window.location.href = url;
     }, 500);
