@@ -91,6 +91,9 @@
     .img-estado.ok { color: #2E7D32; }
     .img-estado.error { color: #B71C1C; }
     .btn-quitar { background: none; border: 1px solid #555; color: #aaa; padding: 4px 10px; border-radius: 6px; font-size: 11px; cursor: pointer; margin-top: 6px; }
+    .separador-o { text-align: center; color: #555; font-size: 12px; margin: 10px 0; }
+    .url-input-wrap input { width: 100%; padding: 12px; background: #111; border: 1px solid #333; border-radius: 8px; color: #fff; font-size: 13px; margin-top: 4px; }
+    .url-input-wrap input:focus { outline: none; border-color: #42A5F5; }
   </style>
 </head>
 <body>
@@ -153,7 +156,6 @@
     </div>
     <div class="push-body">
 
-      <!-- Preview -->
       <div class="preview-box">
         <div class="preview-titulo">Vista previa</div>
         <div class="preview-notif">
@@ -169,26 +171,23 @@
         </div>
       </div>
 
-      <!-- Título -->
       <div class="push-grupo">
         <label>Título de la notificación</label>
         <input type="text" id="push-titulo" placeholder="Ej: ¡Promo especial este viernes!" oninput="actualizarPreview()">
       </div>
 
-      <!-- Mensaje notificación -->
       <div class="push-grupo">
         <label>Mensaje de la notificación</label>
         <textarea id="push-mensaje" placeholder="Ej: 2x1 en canchas de 8pm a 10pm." oninput="actualizarPreview()"></textarea>
       </div>
 
-      <!-- Mensaje WhatsApp -->
       <div class="push-grupo">
         <label>💬 Mensaje en WhatsApp al tocar</label>
         <input type="text" id="push-wa-mensaje" placeholder="Ej: Hola, vi la promo del 2x1 y quiero reservar ⚽" oninput="actualizarPreview()">
         <p class="hint">Este mensaje aparecerá pre-escrito en WhatsApp cuando el cliente toque la notificación</p>
       </div>
 
-      <!-- Imagen con drag & drop -->
+      <!-- Imagen — drag & drop + URL -->
       <div class="push-grupo">
         <label>🖼️ Imagen de la notificación (opcional)</label>
         <div class="drop-zone" id="drop-zone" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
@@ -202,9 +201,12 @@
           <p class="img-estado" id="img-estado"></p>
           <button class="btn-quitar" onclick="quitarImagen()">✕ Quitar imagen</button>
         </div>
+        <div class="separador-o">— o pegá una URL directa —</div>
+        <div class="url-input-wrap">
+          <input type="text" id="push-imagen-url" placeholder="https://i.ibb.co/... (URL directa de la imagen)" oninput="onUrlImagen()">
+        </div>
       </div>
 
-      <!-- Segmento -->
       <div class="push-grupo">
         <label>Enviar a — Segmento por edad</label>
         <div class="segmentos">
@@ -376,7 +378,19 @@
     }
   }
 
-  // Drag & Drop
+  function onUrlImagen() {
+    const url = document.getElementById('push-imagen-url').value.trim();
+    if (url.startsWith('http')) {
+      imagenUrl = url;
+      // Limpiar drag & drop si se usa URL
+      document.getElementById('img-preview').style.display = 'none';
+      document.getElementById('drop-zone').style.display = 'block';
+      document.getElementById('file-input').value = '';
+    } else {
+      imagenUrl = '';
+    }
+  }
+
   function onDragOver(e) {
     e.preventDefault();
     document.getElementById('drop-zone').classList.add('dragover');
@@ -401,6 +415,9 @@
   }
 
   function procesarImagen(file) {
+    // Limpiar URL si se usa drag & drop
+    document.getElementById('push-imagen-url').value = '';
+    imagenUrl = '';
     const reader = new FileReader();
     reader.onload = function(e) {
       document.getElementById('img-preview-img').src = e.target.result;
@@ -446,6 +463,7 @@
     document.getElementById('drop-zone').style.display = 'block';
     document.getElementById('file-input').value = '';
     document.getElementById('img-estado').textContent = '';
+    document.getElementById('push-imagen-url').value = '';
   }
 
   async function enviarNotificacion() {
@@ -461,7 +479,6 @@
       alert('Escribí las edades a las que querés enviar.'); return;
     }
 
-    // Verificar si la imagen todavía se está subiendo
     const estadoImg = document.getElementById('img-estado').textContent;
     if (estadoImg.includes('Subiendo')) {
       alert('Esperá que termine de subir la imagen.'); return;
