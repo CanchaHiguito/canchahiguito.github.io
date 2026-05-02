@@ -71,6 +71,14 @@
     .sistema-box p { color: #F9A825; font-size: 13px; text-align: center; line-height: 1.6; }
     #pantalla-cargando { display: none; min-height: 100%; flex-direction: column; align-items: center; justify-content: center; padding: 32px 20px; text-align: center; }
     #pantalla-cargando.activa { display: flex; }
+    /* Modal notificaciones obligatorio */
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; padding: 24px; z-index: 999; }
+    .modal-box { background: #fff; border-radius: 16px; padding: 28px 24px; width: 100%; max-width: 340px; text-align: center; }
+    .modal-box .modal-icono { font-size: 48px; margin-bottom: 12px; }
+    .modal-box h3 { font-size: 18px; font-weight: 900; color: #111; margin-bottom: 8px; }
+    .modal-box p { font-size: 13px; color: #555; line-height: 1.6; margin-bottom: 20px; }
+    .modal-box .btn-rojo { margin-top: 0; }
+    .modal-box .btn-gris { margin-top: 8px; font-size: 13px; color: #B71C1C; background: none; border: none; cursor: pointer; text-decoration: underline; padding: 8px; }
   </style>
 </head>
 <body>
@@ -109,7 +117,7 @@
           <span>Tocá <strong>"Instalar"</strong> cuando aparezca el aviso</span>
         </div>
         <button class="btn-rojo" onclick="confirmarInstalacion()">✅ Ya la instalé — Continuar</button>
-        <p class="nota">Abrí la app desde el ícono ⚽ en tu pantalla de inicio</p>
+        <p class="nota">Abrí la app desde el ícono en tu pantalla de inicio</p>
       </div>
     </div>
 
@@ -119,10 +127,10 @@
         <div class="paso-titulo">Activá las notificaciones</div>
         <div class="paso-sub">Así te avisamos de promos, partidos gratis y novedades exclusivas de Higuito.</div>
         <div class="sistema-box">
-          <p>📱 Las notificaciones llegan directo a tu celular como las de WhatsApp</p>
+          <p>📱 Las notificaciones son obligatorias para participar en la promo de puntos</p>
         </div>
         <button class="btn-rojo" id="btn-notif" onclick="pedirNotificaciones()">🔔 Activar notificaciones</button>
-        <button class="btn-gris" onclick="saltarNotificaciones()">Ahora no</button>
+        <button class="btn-gris" onclick="rechazarNotificaciones()">Ahora no</button>
         <p class="nota" id="notif-estado" style="margin-top:12px"></p>
       </div>
     </div>
@@ -208,6 +216,28 @@
 
   </div>
 
+  <!-- Modal: notificaciones obligatorias -->
+  <div class="modal-overlay" id="modal-notif-obligatorio" style="display:none">
+    <div class="modal-box">
+      <div class="modal-icono">🔔</div>
+      <h3>Las notificaciones son obligatorias</h3>
+      <p>Para participar en la promo de puntos necesitás activar las notificaciones. Sin ellas no podemos avisarte de promos ni de tu partido gratis.</p>
+      <button class="btn-rojo" onclick="cerrarModalYActivar()">🔔 Activar notificaciones</button>
+      <button class="btn-gris" onclick="cerrarAppDefinitivo()">No quiero participar</button>
+    </div>
+  </div>
+
+  <!-- Modal: advertencia cancelar notificaciones -->
+  <div class="modal-overlay" id="modal-cancelar-notif" style="display:none">
+    <div class="modal-box">
+      <div class="modal-icono">⚠️</div>
+      <h3>¿Cancelar notificaciones?</h3>
+      <p>Si cancelás las notificaciones <strong>perderás todos tus puntos</strong> y tu registro será eliminado del sistema.</p>
+      <button class="btn-rojo" onclick="reactivarNotificaciones()">🔔 Mantener notificaciones</button>
+      <button class="btn-gris" onclick="confirmarCancelarNotificaciones()">Sí, quiero salirme y perder mis puntos</button>
+    </div>
+  </div>
+
 <script>
   const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyzpDCe_abY6qPBGhE7fPIZL8wjV5Fn7R4XBmhZxehKA5zDzrcyOIYbp8YdS6sAaw/exec';
   const ONESIGNAL_APP_ID = 'd6d09ae0-c72c-4d74-a310-d8dcc0a831e3';
@@ -233,6 +263,8 @@
         telefonoActual = telGuardado;
         mostrarPantalla('pantalla-cargando');
         await cargarClienteDirecto(telGuardado);
+        // Verificar si canceló notificaciones
+        await verificarEstadoNotificaciones(telGuardado);
       } else {
         mostrarPantalla('pantalla-numero');
       }
@@ -246,9 +278,83 @@
     mostrarPantalla('pantalla-instalar');
   };
 
+  async function verificarEstadoNotificaciones(telefono) {
+    try {
+      await new Promise(resolve => {
+        OneSignalDeferred.push(async function(OneSignal) {
+          const suscrito = await OneSignal.User.PushSubscription.optedIn;
+          if (!suscrito) {
+            // Canceló notificaciones — mostrar advertencia
+            document.getElementById('modal-cancelar-notif').style.display = 'flex';
+          }
+          resolve();
+        });
+      });
+    } catch(e) {
+      console.log('Error verificando notificaciones:', e);
+    }
+  }
+
+  async function reactivarNotificaciones() {
+    document.getElementById('modal-cancelar-notif').style.display = 'none';
+    try {
+      await new Promise(resolve => {
+        OneSignalDeferred.push(async function(OneSignal) {
+          await OneSignal.User.PushSubscription.optIn();
+          const id = await OneSignal.User.PushSubscription.id;
+          if (id) {
+            localStorage.setItem('higuito_onesignal_id', id);
+            if (telefonoActual) await guardarOneSignalId(telefonoActual, id);
+          }
+          resolve();
+        });
+      });
+    } catch(e) {
+      console.log('Error reactivando:', e);
+    }
+  }
+
+  async function confirmarCancelarNotificaciones() {
+    document.getElementById('modal-cancelar-notif').style.display = 'none';
+    // Borrar cliente del sistema
+    if (telefonoActual) {
+      try {
+        await fetch(SCRIPT_URL + '?accion=borrarCliente&telefono=' + telefonoActual);
+      } catch(e) {}
+    }
+    // Limpiar localStorage
+    localStorage.clear();
+    // Cerrar la app
+    document.querySelector('.header').style.display = 'none';
+    document.querySelector('.pantallas').style.display = 'none';
+    document.body.innerHTML = `
+      <div style="background:#000;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center;">
+        <div style="font-size:48px;margin-bottom:16px">👋</div>
+        <p style="color:#fff;font-size:16px;line-height:1.7">Tu registro fue eliminado.<br>Si cambiás de opinión podés volver a registrarte en cualquier momento.</p>
+      </div>`;
+  }
+
   function confirmarInstalacion() {
     localStorage.setItem('higuito_instalo', 'ok');
     mostrarPantalla('pantalla-notificaciones');
+  }
+
+  function rechazarNotificaciones() {
+    document.getElementById('modal-notif-obligatorio').style.display = 'flex';
+  }
+
+  function cerrarModalYActivar() {
+    document.getElementById('modal-notif-obligatorio').style.display = 'none';
+    pedirNotificaciones();
+  }
+
+  function cerrarAppDefinitivo() {
+    document.getElementById('modal-notif-obligatorio').style.display = 'none';
+    document.body.innerHTML = `
+      <div style="background:#000;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center;">
+        <div style="font-size:48px;margin-bottom:16px">👋</div>
+        <p style="color:#fff;font-size:16px;line-height:1.7">Sin notificaciones no podés participar en la promo.<br><br>Si cambiás de opinión podés volver a abrir la app.</p>
+      </div>`;
   }
 
   async function pedirNotificaciones() {
@@ -289,17 +395,13 @@
     }
   }
 
-  function saltarNotificaciones() { continuar(); }
-
   async function cargarClienteDirecto(telefono) {
     try {
       const resp = await fetch(SCRIPT_URL + '?accion=verificar&telefono=' + telefono);
       const data = await resp.json();
       if (data.encontrado) {
-        // Intentar actualizar OneSignal ID si está disponible
         const osId = localStorage.getItem('higuito_onesignal_id');
         if (!osId) {
-          // Intentar obtener ID actual de OneSignal
           OneSignalDeferred.push(async function(OneSignal) {
             const id = await OneSignal.User.PushSubscription.id;
             if (id) {
@@ -361,12 +463,10 @@
       if (data.encontrado) {
         telefonoActual = telefono;
         localStorage.setItem('higuito_telefono', telefono);
-        // Guardar OneSignal ID vinculado al teléfono
         const osId = localStorage.getItem('higuito_onesignal_id');
         if (osId) {
           await guardarOneSignalId(telefono, osId);
         } else {
-          // Intentar obtener ID actual
           OneSignalDeferred.push(async function(OneSignal) {
             const id = await OneSignal.User.PushSubscription.id;
             if (id) {
@@ -503,7 +603,6 @@
       document.getElementById('loading-registro').style.display = 'none';
       if (data.ok) {
         localStorage.setItem('higuito_telefono', telefonoActual);
-        // Guardar OneSignal ID para nuevo cliente
         const osId = localStorage.getItem('higuito_onesignal_id');
         if (osId) {
           await guardarOneSignalId(telefonoActual, osId);
