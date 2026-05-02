@@ -216,7 +216,6 @@
   let pollingInterval = null;
   let puntosAntes = 0;
 
-  // OneSignal apuntando a la raíz
   window.OneSignalDeferred = window.OneSignalDeferred || [];
   OneSignalDeferred.push(async function(OneSignal) {
     await OneSignal.init({
@@ -297,6 +296,20 @@
       const resp = await fetch(SCRIPT_URL + '?accion=verificar&telefono=' + telefono);
       const data = await resp.json();
       if (data.encontrado) {
+        // Intentar actualizar OneSignal ID si está disponible
+        const osId = localStorage.getItem('higuito_onesignal_id');
+        if (!osId) {
+          // Intentar obtener ID actual de OneSignal
+          OneSignalDeferred.push(async function(OneSignal) {
+            const id = await OneSignal.User.PushSubscription.id;
+            if (id) {
+              localStorage.setItem('higuito_onesignal_id', id);
+              await guardarOneSignalId(telefono, id);
+            }
+          });
+        } else {
+          await guardarOneSignalId(telefono, osId);
+        }
         mostrarCliente(data);
       } else {
         localStorage.removeItem('higuito_telefono');
@@ -304,6 +317,14 @@
       }
     } catch(e) {
       mostrarPantalla('pantalla-numero');
+    }
+  }
+
+  async function guardarOneSignalId(telefono, osId) {
+    try {
+      await fetch(SCRIPT_URL + '?accion=guardarPush&telefono=' + telefono + '&sub=' + encodeURIComponent(osId));
+    } catch(e) {
+      console.log('Error guardando ID:', e);
     }
   }
 
@@ -340,6 +361,20 @@
       if (data.encontrado) {
         telefonoActual = telefono;
         localStorage.setItem('higuito_telefono', telefono);
+        // Guardar OneSignal ID vinculado al teléfono
+        const osId = localStorage.getItem('higuito_onesignal_id');
+        if (osId) {
+          await guardarOneSignalId(telefono, osId);
+        } else {
+          // Intentar obtener ID actual
+          OneSignalDeferred.push(async function(OneSignal) {
+            const id = await OneSignal.User.PushSubscription.id;
+            if (id) {
+              localStorage.setItem('higuito_onesignal_id', id);
+              await guardarOneSignalId(telefono, id);
+            }
+          });
+        }
         mostrarCliente(data);
       } else {
         telefonoActual = telefono;
@@ -468,6 +503,19 @@
       document.getElementById('loading-registro').style.display = 'none';
       if (data.ok) {
         localStorage.setItem('higuito_telefono', telefonoActual);
+        // Guardar OneSignal ID para nuevo cliente
+        const osId = localStorage.getItem('higuito_onesignal_id');
+        if (osId) {
+          await guardarOneSignalId(telefonoActual, osId);
+        } else {
+          OneSignalDeferred.push(async function(OneSignal) {
+            const id = await OneSignal.User.PushSubscription.id;
+            if (id) {
+              localStorage.setItem('higuito_onesignal_id', id);
+              await guardarOneSignalId(telefonoActual, id);
+            }
+          });
+        }
         document.getElementById('pantalla-registro').innerHTML = `
           <div style="text-align:center;padding:24px 16px">
             <div style="font-size:56px;margin-bottom:12px">🎉</div>
