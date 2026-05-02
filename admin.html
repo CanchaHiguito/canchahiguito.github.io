@@ -55,12 +55,12 @@
     .push-grupo input, .push-grupo textarea { width: 100%; padding: 12px; background: #111; border: 1px solid #333; border-radius: 8px; color: #fff; font-size: 14px; font-family: Arial, sans-serif; }
     .push-grupo textarea { height: 80px; resize: none; }
     .push-grupo input:focus, .push-grupo textarea:focus { outline: none; border-color: #42A5F5; }
+    .push-grupo .hint { font-size: 11px; color: #555; margin-top: 6px; }
     .segmentos { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
     .seg-btn { padding: 8px 14px; border-radius: 20px; border: 1px solid #333; background: #111; color: #aaa; font-size: 13px; cursor: pointer; }
     .seg-btn.activo { background: #1565C0; border-color: #1565C0; color: #fff; }
     .edades-custom { display: none; margin-top: 8px; }
     .edades-custom.visible { display: block; }
-    .edades-hint { font-size: 11px; color: #666; margin-top: 6px; }
     .btn-enviar { width: 100%; padding: 18px; background: #1565C0; color: #fff; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 8px; }
     .btn-enviar:active { background: #0D47A1; }
     .btn-enviar:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -74,7 +74,10 @@
     .preview-notif .icono { font-size: 28px; }
     .preview-notif .texto h4 { color: #fff; font-size: 14px; font-weight: bold; }
     .preview-notif .texto p { color: #aaa; font-size: 12px; margin-top: 2px; }
-    .contador-badge { background: #1565C0; color: #fff; border-radius: 20px; padding: 4px 10px; font-size: 12px; display: inline-block; margin-top: 8px; }
+    .wa-preview { background: #1a1a1a; border-radius: 10px; padding: 12px; margin-top: 10px; display: flex; align-items: center; gap: 10px; }
+    .wa-preview .wa-icono { font-size: 22px; }
+    .wa-preview p { color: #aaa; font-size: 12px; }
+    .wa-preview strong { color: #25D366; }
   </style>
 </head>
 <body>
@@ -139,7 +142,7 @@
 
       <!-- Preview -->
       <div class="preview-box">
-        <div class="preview-titulo">Vista previa</div>
+        <div class="preview-titulo">Vista previa de la notificación</div>
         <div class="preview-notif">
           <div class="icono">⚽</div>
           <div class="texto">
@@ -147,18 +150,29 @@
             <p id="preview-mensaje-text">Mensaje de la notificación...</p>
           </div>
         </div>
+        <div class="wa-preview">
+          <div class="wa-icono">💬</div>
+          <p>Al tocar → WhatsApp: <strong id="preview-wa-text">Mensaje en WhatsApp...</strong></p>
+        </div>
       </div>
 
       <!-- Título -->
       <div class="push-grupo">
-        <label>Título</label>
+        <label>Título de la notificación</label>
         <input type="text" id="push-titulo" placeholder="Ej: ¡Promo especial este viernes!" oninput="actualizarPreview()">
       </div>
 
-      <!-- Mensaje -->
+      <!-- Mensaje notificación -->
       <div class="push-grupo">
-        <label>Mensaje</label>
+        <label>Mensaje de la notificación</label>
         <textarea id="push-mensaje" placeholder="Ej: 2x1 en canchas de 8pm a 10pm. ¡Solo para clientes Higuito!" oninput="actualizarPreview()"></textarea>
+      </div>
+
+      <!-- Mensaje WhatsApp -->
+      <div class="push-grupo">
+        <label>💬 Mensaje en WhatsApp al tocar</label>
+        <input type="text" id="push-wa-mensaje" placeholder="Ej: Hola, vi la promo del 2x1 y quiero reservar ⚽" oninput="actualizarPreview()">
+        <p class="hint">Este mensaje aparecerá pre-escrito en WhatsApp cuando el cliente toque la notificación</p>
       </div>
 
       <!-- Imagen -->
@@ -167,13 +181,7 @@
         <input type="text" id="push-imagen" placeholder="https://... (URL de una imagen)">
       </div>
 
-      <!-- URL -->
-      <div class="push-grupo">
-        <label>Enlace al tocar la notificación</label>
-        <input type="text" id="push-url" value="https://canchahiguito.github.io">
-      </div>
-
-      <!-- Segmento por edad -->
+      <!-- Segmento -->
       <div class="push-grupo">
         <label>Enviar a — Segmento por edad</label>
         <div class="segmentos">
@@ -185,10 +193,7 @@
         </div>
         <div class="edades-custom" id="edades-custom">
           <input type="text" id="edades-input" placeholder="Ej: 20-35 o 25,30,40 o 18-25,30,35-40" style="width:100%;padding:12px;background:#111;border:1px solid #333;border-radius:8px;color:#fff;font-size:14px;">
-          <p class="edades-hint">Usá rangos con guión (20-35), edades exactas separadas por coma (25,30), o combinaciones</p>
-        </div>
-        <div id="contador-suscriptores" class="contador-badge" style="display:none">
-          Calculando suscriptores...
+          <p class="hint">Usá rangos con guión (20-35), edades exactas separadas por coma (25,30), o combinaciones</p>
         </div>
       </div>
 
@@ -328,8 +333,10 @@
   function actualizarPreview() {
     const titulo = document.getElementById('push-titulo').value || 'Título de la notificación';
     const mensaje = document.getElementById('push-mensaje').value || 'Mensaje de la notificación...';
+    const waMensaje = document.getElementById('push-wa-mensaje').value || 'Mensaje en WhatsApp...';
     document.getElementById('preview-titulo-text').textContent = titulo;
     document.getElementById('preview-mensaje-text').textContent = mensaje;
+    document.getElementById('preview-wa-text').textContent = waMensaje;
   }
 
   function selSegmento(seg) {
@@ -347,15 +354,19 @@
   async function enviarNotificacion() {
     const titulo = document.getElementById('push-titulo').value.trim();
     const mensaje = document.getElementById('push-mensaje').value.trim();
+    const waMensaje = document.getElementById('push-wa-mensaje').value.trim();
     const imagen = document.getElementById('push-imagen').value.trim();
-    const url = document.getElementById('push-url').value.trim();
     const edadesCustom = document.getElementById('edades-input').value.trim();
 
     if (!titulo) { alert('Escribí un título para la notificación.'); return; }
     if (!mensaje) { alert('Escribí un mensaje para la notificación.'); return; }
+    if (!waMensaje) { alert('Escribí el mensaje que aparecerá en WhatsApp.'); return; }
     if (segmentoActual === 'custom' && !edadesCustom) {
       alert('Escribí las edades a las que querés enviar.'); return;
     }
+
+    // Generar URL de WhatsApp
+    const waUrl = 'https://canchahiguito.github.io/wa.html?msg=' + encodeURIComponent(waMensaje);
 
     document.getElementById('btn-enviar').disabled = true;
     document.getElementById('btn-enviar').textContent = '⏳ Enviando...';
@@ -367,7 +378,7 @@
         titulo: titulo,
         mensaje: mensaje,
         imagen: imagen,
-        url: url,
+        url: waUrl,
         segmento: segmentoActual,
         edades: edadesCustom
       });
@@ -380,7 +391,7 @@
 
       if (data.id) {
         res.className = 'push-resultado ok';
-        texto.textContent = '✅ Notificación enviada correctamente a ' + (data.recipients || 'todos los') + ' suscriptores.';
+        texto.textContent = '✅ Notificación enviada a ' + (data.recipients || 1) + ' suscriptor(es).';
       } else if (data.error) {
         res.className = 'push-resultado error';
         texto.textContent = '❌ ' + data.error;
