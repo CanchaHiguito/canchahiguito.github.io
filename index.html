@@ -71,7 +71,6 @@
     .sistema-box p { color: #F9A825; font-size: 13px; text-align: center; line-height: 1.6; }
     #pantalla-cargando { display: none; min-height: 100%; flex-direction: column; align-items: center; justify-content: center; padding: 32px 20px; text-align: center; }
     #pantalla-cargando.activa { display: flex; }
-    /* Modal notificaciones obligatorio */
     .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; padding: 24px; z-index: 999; }
     .modal-box { background: #fff; border-radius: 16px; padding: 28px 24px; width: 100%; max-width: 340px; text-align: center; }
     .modal-box .modal-icono { font-size: 48px; margin-bottom: 12px; }
@@ -261,10 +260,18 @@
       const telGuardado = localStorage.getItem('higuito_telefono');
       if (telGuardado) {
         telefonoActual = telGuardado;
-        mostrarPantalla('pantalla-cargando');
-        await cargarClienteDirecto(telGuardado);
-        // Verificar si canceló notificaciones
-        await verificarEstadoNotificaciones(telGuardado);
+        // Mostrar cache inmediatamente sin esperar al servidor
+        const cacheStr = localStorage.getItem('higuito_cache_cliente');
+        if (cacheStr) {
+          const cache = JSON.parse(cacheStr);
+          mostrarCliente(cache);
+        } else {
+          mostrarPantalla('pantalla-cargando');
+        }
+        // Actualizar en segundo plano
+        cargarClienteDirecto(telGuardado);
+        // Verificar notificaciones en segundo plano
+        verificarEstadoNotificaciones(telGuardado);
       } else {
         mostrarPantalla('pantalla-numero');
       }
@@ -284,7 +291,6 @@
         OneSignalDeferred.push(async function(OneSignal) {
           const suscrito = await OneSignal.User.PushSubscription.optedIn;
           if (!suscrito) {
-            // Canceló notificaciones — mostrar advertencia
             document.getElementById('modal-cancelar-notif').style.display = 'flex';
           }
           resolve();
@@ -316,15 +322,12 @@
 
   async function confirmarCancelarNotificaciones() {
     document.getElementById('modal-cancelar-notif').style.display = 'none';
-    // Borrar cliente del sistema
     if (telefonoActual) {
       try {
         await fetch(SCRIPT_URL + '?accion=borrarCliente&telefono=' + telefonoActual);
       } catch(e) {}
     }
-    // Limpiar localStorage
     localStorage.clear();
-    // Cerrar la app
     document.querySelector('.header').style.display = 'none';
     document.querySelector('.pantallas').style.display = 'none';
     document.body.innerHTML = `
@@ -388,8 +391,13 @@
     const telGuardado = localStorage.getItem('higuito_telefono');
     if (telGuardado) {
       telefonoActual = telGuardado;
-      mostrarPantalla('pantalla-cargando');
-      await cargarClienteDirecto(telGuardado);
+      const cacheStr = localStorage.getItem('higuito_cache_cliente');
+      if (cacheStr) {
+        mostrarCliente(JSON.parse(cacheStr));
+      } else {
+        mostrarPantalla('pantalla-cargando');
+      }
+      cargarClienteDirecto(telGuardado);
     } else {
       mostrarPantalla('pantalla-numero');
     }
@@ -400,6 +408,8 @@
       const resp = await fetch(SCRIPT_URL + '?accion=verificar&telefono=' + telefono);
       const data = await resp.json();
       if (data.encontrado) {
+        // Guardar en cache para próxima vez
+        localStorage.setItem('higuito_cache_cliente', JSON.stringify(data));
         const osId = localStorage.getItem('higuito_onesignal_id');
         if (!osId) {
           OneSignalDeferred.push(async function(OneSignal) {
@@ -412,13 +422,16 @@
         } else {
           await guardarOneSignalId(telefono, osId);
         }
+        // Actualizar pantalla con datos frescos
         mostrarCliente(data);
       } else {
         localStorage.removeItem('higuito_telefono');
+        localStorage.removeItem('higuito_cache_cliente');
         mostrarPantalla('pantalla-numero');
       }
     } catch(e) {
-      mostrarPantalla('pantalla-numero');
+      // Si falla la conexión usar cache — ya está mostrado
+      console.log('Error cargando cliente:', e);
     }
   }
 
@@ -463,6 +476,7 @@
       if (data.encontrado) {
         telefonoActual = telefono;
         localStorage.setItem('higuito_telefono', telefono);
+        localStorage.setItem('higuito_cache_cliente', JSON.stringify(data));
         const osId = localStorage.getItem('higuito_onesignal_id');
         if (osId) {
           await guardarOneSignalId(telefono, osId);
@@ -569,6 +583,7 @@
   async function canjearPremio() {
     try {
       await fetch(SCRIPT_URL + '?accion=canjear&telefono=' + telefonoActual);
+      localStorage.removeItem('higuito_cache_cliente');
       document.getElementById('pantalla-premio').innerHTML = `
         <div style="background:#000;padding:24px 16px;text-align:center;border-bottom:3px solid #F9A825;flex-shrink:0;">
           <h2 style="color:#F9A825;font-size:22px;font-weight:900;margin:0">✅ ¡Premio canjeado!</h2>
