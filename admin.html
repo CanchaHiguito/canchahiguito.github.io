@@ -18,10 +18,14 @@
     .resultado.ok { background: rgba(46,125,50,0.97); }
     .resultado.error { background: rgba(183,28,28,0.97); }
     .resultado.ya { background: rgba(245,127,23,0.97); }
+    .resultado.premio { background: rgba(0,0,0,0.97); border-top: 3px solid #F9A825; }
     .resultado h3 { color: #fff; font-size: 20px; font-weight: 900; margin-bottom: 4px; }
     .resultado p { color: rgba(255,255,255,0.9); font-size: 14px; margin-bottom: 12px; }
     .puntos-big { font-size: 56px; font-weight: 900; color: #fff; line-height: 1; margin-bottom: 4px; }
+    .countdown-bar { height: 4px; background: rgba(255,255,255,0.3); border-radius: 2px; margin-bottom: 12px; overflow: hidden; }
+    .countdown-bar-fill { height: 100%; background: #fff; border-radius: 2px; transition: width linear; }
     .btn-siguiente { width: 100%; padding: 16px; background: #fff; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; color: #2E7D32; }
+    .btn-siguiente.premio { color: #F9A825; }
     .btn-admin { position: fixed; bottom: 16px; right: 16px; background: rgba(0,0,0,0.6); color: #F9A825; border: 1px solid #F9A825; padding: 8px 14px; border-radius: 20px; font-size: 12px; cursor: pointer; z-index: 60; }
     .pin-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; z-index: 100; }
     .pin-card { background: #fff; border-radius: 16px; padding: 28px 24px; width: 100%; max-width: 340px; text-align: center; }
@@ -112,7 +116,10 @@
     <h3 id="res-titulo">...</h3>
     <div class="puntos-big" id="res-puntos" style="display:none"></div>
     <p id="res-texto">...</p>
-    <button class="btn-siguiente" onclick="siguienteEscaneo()">✅ Listo — Siguiente cliente</button>
+    <div class="countdown-bar" id="countdown-bar" style="display:none">
+      <div class="countdown-bar-fill" id="countdown-bar-fill" style="width:100%"></div>
+    </div>
+    <button class="btn-siguiente" id="btn-siguiente" onclick="siguienteEscaneo()">✅ Listo — Siguiente cliente</button>
   </div>
 
   <button class="btn-admin" onclick="mostrarPinAdmin()">⚙️ Admin</button>
@@ -187,7 +194,6 @@
         <p class="hint">Este mensaje aparecerá pre-escrito en WhatsApp cuando el cliente toque la notificación</p>
       </div>
 
-      <!-- Imagen — drag & drop + URL -->
       <div class="push-grupo">
         <label>🖼️ Imagen de la notificación (opcional)</label>
         <div class="drop-zone" id="drop-zone" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
@@ -236,13 +242,77 @@
   const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyzpDCe_abY6qPBGhE7fPIZL8wjV5Fn7R4XBmhZxehKA5zDzrcyOIYbp8YdS6sAaw/exec';
   const IMGBB_API_KEY = '79d891f29823a6a596b4672c74a8d232';
   const PIN_ADMIN = '1787';
+  const SEGUNDOS_AUTO = 3;
   let procesando = false;
   let html5QrCode = null;
   let segmentoActual = 'todos';
   let imagenUrl = '';
+  let autoCloseTimer = null;
+  let audioCtx = null;
 
   window.onload = function() { iniciarEscaner(); };
 
+  // ============================================================
+  // SONIDOS
+  // ============================================================
+  function sonarBeep(tipo) {
+    try {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+
+      if (tipo === 'ok') {
+        // Dos pitidos cortos ascendentes — punto sumado
+        const tiempos = [0, 0.18];
+        const frecuencias = [660, 880];
+        tiempos.forEach((t, i) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.frequency.value = frecuencias[i];
+          osc.type = 'sine';
+          gain.gain.setValueAtTime(0.3, audioCtx.currentTime + t);
+          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + t + 0.15);
+          osc.start(audioCtx.currentTime + t);
+          osc.stop(audioCtx.currentTime + t + 0.15);
+        });
+      } else if (tipo === 'premio') {
+        // Tres pitidos ascendentes — partido gratis
+        const tiempos = [0, 0.2, 0.4];
+        const frecuencias = [660, 880, 1100];
+        tiempos.forEach((t, i) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.frequency.value = frecuencias[i];
+          osc.type = 'sine';
+          gain.gain.setValueAtTime(0.4, audioCtx.currentTime + t);
+          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + t + 0.18);
+          osc.start(audioCtx.currentTime + t);
+          osc.stop(audioCtx.currentTime + t + 0.18);
+        });
+      } else if (tipo === 'error') {
+        // Un pitido grave — error o ya registrado
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.frequency.value = 220;
+        osc.type = 'sine';
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+        osc.start(audioCtx.currentTime);
+        osc.stop(audioCtx.currentTime + 0.4);
+      }
+    } catch(e) {
+      console.log('Error de audio:', e);
+    }
+  }
+
+  // ============================================================
+  // ESCÁNER
+  // ============================================================
   function iniciarEscaner() {
     html5QrCode = new Html5Qrcode("reader");
     html5QrCode.start(
@@ -272,45 +342,84 @@
       const resp = await fetch(SCRIPT_URL + '?accion=sumarPunto&telefono=' + telefono);
       const data = await resp.json();
       const res = document.getElementById('resultado');
+
       if (data.ok) {
         if (data.premio) {
-          res.className = 'resultado ok';
+          sonarBeep('premio');
+          res.className = 'resultado premio';
           document.getElementById('res-titulo').textContent = '🏆 ¡PARTIDO GRATIS!';
           document.getElementById('res-puntos').style.display = 'none';
           document.getElementById('res-texto').textContent = 'Este cliente llegó a 10 puntos. Autorizá el acceso gratuito.';
+          document.getElementById('countdown-bar').style.display = 'none';
+          document.getElementById('btn-siguiente').textContent = '✅ Confirmar partido gratis';
+          document.getElementById('btn-siguiente').className = 'btn-siguiente premio';
+          res.style.display = 'block';
         } else {
+          sonarBeep('ok');
           res.className = 'resultado ok';
           document.getElementById('res-titulo').textContent = '✅ ¡Punto sumado!';
           document.getElementById('res-puntos').style.display = 'block';
           document.getElementById('res-puntos').textContent = data.puntos;
           document.getElementById('res-texto').textContent = 'Le faltan ' + Math.max(10 - data.puntos, 0) + ' puntos para partido gratis';
+          document.getElementById('btn-siguiente').textContent = '✅ Listo — Siguiente cliente';
+          document.getElementById('btn-siguiente').className = 'btn-siguiente';
+          res.style.display = 'block';
+          iniciarCuentaRegresiva();
         }
       } else if (data.motivo === 'ya_registrado') {
+        sonarBeep('error');
         res.className = 'resultado ya';
         document.getElementById('res-titulo').textContent = '⚠️ Ya registrado hoy';
         document.getElementById('res-puntos').style.display = 'none';
         document.getElementById('res-texto').textContent = 'Este cliente ya sumó su punto hoy.';
+        document.getElementById('btn-siguiente').textContent = '✅ Listo — Siguiente cliente';
+        document.getElementById('btn-siguiente').className = 'btn-siguiente';
+        res.style.display = 'block';
+        iniciarCuentaRegresiva();
       } else {
+        sonarBeep('error');
         res.className = 'resultado error';
         document.getElementById('res-titulo').textContent = '❌ Error';
         document.getElementById('res-puntos').style.display = 'none';
         document.getElementById('res-texto').textContent = data.error || 'No se pudo procesar.';
+        document.getElementById('btn-siguiente').textContent = '✅ Listo — Siguiente cliente';
+        document.getElementById('btn-siguiente').className = 'btn-siguiente';
+        res.style.display = 'block';
+        iniciarCuentaRegresiva();
       }
-      res.style.display = 'block';
     } catch(e) {
+      sonarBeep('error');
       const res = document.getElementById('resultado');
       res.className = 'resultado error';
       document.getElementById('res-titulo').textContent = '❌ Error de conexión';
       document.getElementById('res-puntos').style.display = 'none';
       document.getElementById('res-texto').textContent = 'Intentá de nuevo.';
+      document.getElementById('btn-siguiente').textContent = '✅ Listo — Siguiente cliente';
+      document.getElementById('btn-siguiente').className = 'btn-siguiente';
       res.style.display = 'block';
-      procesando = false;
+      iniciarCuentaRegresiva();
     }
   }
 
+  function iniciarCuentaRegresiva() {
+    const bar = document.getElementById('countdown-bar');
+    const fill = document.getElementById('countdown-bar-fill');
+    bar.style.display = 'block';
+    fill.style.transition = 'none';
+    fill.style.width = '100%';
+    fill.offsetHeight;
+    fill.style.transition = 'width ' + SEGUNDOS_AUTO + 's linear';
+    fill.style.width = '0%';
+    if (autoCloseTimer) clearTimeout(autoCloseTimer);
+    autoCloseTimer = setTimeout(() => { siguienteEscaneo(); }, SEGUNDOS_AUTO * 1000);
+  }
+
   function siguienteEscaneo() {
+    if (autoCloseTimer) { clearTimeout(autoCloseTimer); autoCloseTimer = null; }
     document.getElementById('resultado').style.display = 'none';
     document.getElementById('resultado').className = 'resultado';
+    document.getElementById('countdown-bar').style.display = 'none';
+    document.getElementById('res-puntos').style.display = 'none';
     procesando = false;
   }
 
@@ -382,7 +491,6 @@
     const url = document.getElementById('push-imagen-url').value.trim();
     if (url.startsWith('http')) {
       imagenUrl = url;
-      // Limpiar drag & drop si se usa URL
       document.getElementById('img-preview').style.display = 'none';
       document.getElementById('drop-zone').style.display = 'block';
       document.getElementById('file-input').value = '';
@@ -404,9 +512,7 @@
     e.preventDefault();
     document.getElementById('drop-zone').classList.remove('dragover');
     const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith('image/')) {
-      procesarImagen(file);
-    }
+    if (file && file.type.startsWith('image/')) procesarImagen(file);
   }
 
   function onFileSelected(e) {
@@ -415,7 +521,6 @@
   }
 
   function procesarImagen(file) {
-    // Limpiar URL si se usa drag & drop
     document.getElementById('push-imagen-url').value = '';
     imagenUrl = '';
     const reader = new FileReader();
@@ -436,10 +541,7 @@
       const formData = new FormData();
       formData.append('image', file);
       formData.append('key', IMGBB_API_KEY);
-      const resp = await fetch('https://api.imgbb.com/1/upload', {
-        method: 'POST',
-        body: formData
-      });
+      const resp = await fetch('https://api.imgbb.com/1/upload', { method: 'POST', body: formData });
       const data = await resp.json();
       if (data.success) {
         imagenUrl = data.data.url;
@@ -480,9 +582,7 @@
     }
 
     const estadoImg = document.getElementById('img-estado').textContent;
-    if (estadoImg.includes('Subiendo')) {
-      alert('Esperá que termine de subir la imagen.'); return;
-    }
+    if (estadoImg.includes('Subiendo')) { alert('Esperá que termine de subir la imagen.'); return; }
 
     const waUrl = 'https://canchahiguito.github.io/wa.html?msg=' + encodeURIComponent(waMensaje);
 
@@ -492,21 +592,14 @@
 
     try {
       const params = new URLSearchParams({
-        accion: 'enviarPush',
-        titulo: titulo,
-        mensaje: mensaje,
-        imagen: imagenUrl,
-        url: waUrl,
-        segmento: segmentoActual,
-        edades: edadesCustom
+        accion: 'enviarPush', titulo, mensaje,
+        imagen: imagenUrl, url: waUrl,
+        segmento: segmentoActual, edades: edadesCustom
       });
-
       const resp = await fetch(SCRIPT_URL + '?' + params.toString());
       const data = await resp.json();
-
       const res = document.getElementById('push-resultado');
       const texto = document.getElementById('push-resultado-texto');
-
       if (data.id) {
         res.className = 'push-resultado ok';
         texto.textContent = '✅ Notificación enviada a ' + (data.recipients || 1) + ' suscriptor(es).';
@@ -518,7 +611,6 @@
         texto.textContent = '❌ Error: ' + JSON.stringify(data);
       }
       res.style.display = 'block';
-
     } catch(e) {
       const res = document.getElementById('push-resultado');
       res.className = 'push-resultado error';
