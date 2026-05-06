@@ -253,7 +253,7 @@
   window.onload = function() { iniciarEscaner(); };
 
   // ============================================================
-  // SONIDOS
+  // SONIDOS — más fuertes y más largos
   // ============================================================
   function sonarBeep(tipo) {
     try {
@@ -261,8 +261,8 @@
       if (audioCtx.state === 'suspended') audioCtx.resume();
 
       if (tipo === 'ok') {
-        // Dos pitidos cortos ascendentes — punto sumado
-        const tiempos = [0, 0.18];
+        // Dos pitidos ascendentes — punto sumado
+        const tiempos = [0, 0.35];
         const frecuencias = [660, 880];
         tiempos.forEach((t, i) => {
           const osc = audioCtx.createOscillator();
@@ -271,14 +271,14 @@
           gain.connect(audioCtx.destination);
           osc.frequency.value = frecuencias[i];
           osc.type = 'sine';
-          gain.gain.setValueAtTime(0.3, audioCtx.currentTime + t);
-          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + t + 0.15);
+          gain.gain.setValueAtTime(1.0, audioCtx.currentTime + t);
+          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + t + 0.35);
           osc.start(audioCtx.currentTime + t);
-          osc.stop(audioCtx.currentTime + t + 0.15);
+          osc.stop(audioCtx.currentTime + t + 0.35);
         });
       } else if (tipo === 'premio') {
         // Tres pitidos ascendentes — partido gratis
-        const tiempos = [0, 0.2, 0.4];
+        const tiempos = [0, 0.35, 0.7];
         const frecuencias = [660, 880, 1100];
         tiempos.forEach((t, i) => {
           const osc = audioCtx.createOscillator();
@@ -287,23 +287,23 @@
           gain.connect(audioCtx.destination);
           osc.frequency.value = frecuencias[i];
           osc.type = 'sine';
-          gain.gain.setValueAtTime(0.4, audioCtx.currentTime + t);
-          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + t + 0.18);
+          gain.gain.setValueAtTime(1.0, audioCtx.currentTime + t);
+          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + t + 0.35);
           osc.start(audioCtx.currentTime + t);
-          osc.stop(audioCtx.currentTime + t + 0.18);
+          osc.stop(audioCtx.currentTime + t + 0.35);
         });
       } else if (tipo === 'error') {
-        // Un pitido grave — error o ya registrado
+        // Un pitido grave largo — error o ya registrado
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.connect(gain);
         gain.connect(audioCtx.destination);
         osc.frequency.value = 220;
         osc.type = 'sine';
-        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+        gain.gain.setValueAtTime(1.0, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.8);
         osc.start(audioCtx.currentTime);
-        osc.stop(audioCtx.currentTime + 0.4);
+        osc.stop(audioCtx.currentTime + 0.8);
       }
     } catch(e) {
       console.log('Error de audio:', e);
