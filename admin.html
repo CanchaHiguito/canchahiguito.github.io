@@ -255,15 +255,15 @@
   // ============================================================
   // SONIDOS — más fuertes y más largos
   // ============================================================
-  function sonarBeep(tipo) {
+ function sonarBeep(tipo) {
     try {
       if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       if (audioCtx.state === 'suspended') audioCtx.resume();
 
       if (tipo === 'ok') {
-        // PUNTO SUMADO — Sirena ascendente alegre por 3 segundos
-        const duracionTotal = 3;
-        const numCiclos = 6;
+        // PUNTO SUMADO — Sirena ascendente alegre por 4 segundos
+        const duracionTotal = 4;
+        const numCiclos = 8;
         for (let c = 0; c < numCiclos; c++) {
           const tInicio = c * (duracionTotal / numCiclos);
           const osc = audioCtx.createOscillator();
@@ -283,13 +283,13 @@
       } else if (tipo === 'premio') {
         // PARTIDO GRATIS — Fanfarria de victoria por 3 segundos (notas musicales)
         const notas = [
-          { freq: 523,  t: 0,   dur: 0.25 },  // Do
-          { freq: 659,  t: 0.25, dur: 0.25 }, // Mi
-          { freq: 784,  t: 0.5,  dur: 0.25 }, // Sol
-          { freq: 1047, t: 0.75, dur: 0.5 },  // Do alto
-          { freq: 784,  t: 1.25, dur: 0.25 }, // Sol
-          { freq: 1047, t: 1.5,  dur: 0.5 },  // Do alto
-          { freq: 1319, t: 2.0,  dur: 1.0 }   // Mi alto largo
+          { freq: 523,  t: 0,   dur: 0.25 },
+          { freq: 659,  t: 0.25, dur: 0.25 },
+          { freq: 784,  t: 0.5,  dur: 0.25 },
+          { freq: 1047, t: 0.75, dur: 0.5 },
+          { freq: 784,  t: 1.25, dur: 0.25 },
+          { freq: 1047, t: 1.5,  dur: 0.5 },
+          { freq: 1319, t: 2.0,  dur: 1.0 }
         ];
         notas.forEach(n => {
           const osc = audioCtx.createOscillator();
@@ -306,29 +306,43 @@
           osc.stop(audioCtx.currentTime + n.t + n.dur);
         });
       } else if (tipo === 'error') {
-        // ERROR / YA REGISTRADO — Alarma grave intermitente por 3 segundos
-        const numPitidos = 6;
-        for (let p = 0; p < numPitidos; p++) {
-          const tInicio = p * 0.5;
-          const osc = audioCtx.createOscillator();
-          const gain = audioCtx.createGain();
-          osc.connect(gain);
-          gain.connect(audioCtx.destination);
-          osc.type = 'sawtooth';
-          osc.frequency.value = 200;
-          gain.gain.setValueAtTime(0, audioCtx.currentTime + tInicio);
-          gain.gain.linearRampToValueAtTime(1.0, audioCtx.currentTime + tInicio + 0.02);
-          gain.gain.setValueAtTime(1.0, audioCtx.currentTime + tInicio + 0.3);
-          gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + tInicio + 0.4);
-          osc.start(audioCtx.currentTime + tInicio);
-          osc.stop(audioCtx.currentTime + tInicio + 0.4);
+        // ERROR / YA REGISTRADO — Sirena de ambulancia por 3 segundos
+        const duracionTotal = 3;
+        const numCiclos = 4;
+        for (let c = 0; c < numCiclos; c++) {
+          const tInicio = c * (duracionTotal / numCiclos);
+          // Tono alto
+          const osc1 = audioCtx.createOscillator();
+          const gain1 = audioCtx.createGain();
+          osc1.connect(gain1);
+          gain1.connect(audioCtx.destination);
+          osc1.type = 'square';
+          osc1.frequency.value = 950;
+          gain1.gain.setValueAtTime(0, audioCtx.currentTime + tInicio);
+          gain1.gain.linearRampToValueAtTime(1.0, audioCtx.currentTime + tInicio + 0.02);
+          gain1.gain.setValueAtTime(1.0, audioCtx.currentTime + tInicio + 0.35);
+          gain1.gain.linearRampToValueAtTime(0, audioCtx.currentTime + tInicio + 0.37);
+          osc1.start(audioCtx.currentTime + tInicio);
+          osc1.stop(audioCtx.currentTime + tInicio + 0.37);
+          // Tono bajo
+          const osc2 = audioCtx.createOscillator();
+          const gain2 = audioCtx.createGain();
+          osc2.connect(gain2);
+          gain2.connect(audioCtx.destination);
+          osc2.type = 'square';
+          osc2.frequency.value = 700;
+          gain2.gain.setValueAtTime(0, audioCtx.currentTime + tInicio + 0.37);
+          gain2.gain.linearRampToValueAtTime(1.0, audioCtx.currentTime + tInicio + 0.39);
+          gain2.gain.setValueAtTime(1.0, audioCtx.currentTime + tInicio + 0.72);
+          gain2.gain.linearRampToValueAtTime(0, audioCtx.currentTime + tInicio + 0.74);
+          osc2.start(audioCtx.currentTime + tInicio + 0.37);
+          osc2.stop(audioCtx.currentTime + tInicio + 0.74);
         }
       }
     } catch(e) {
       console.log('Error de audio:', e);
     }
   }
-
   // ============================================================
   // ESCÁNER
   // ============================================================
