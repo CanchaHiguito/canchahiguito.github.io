@@ -4,19 +4,21 @@
   "description": "Sistema de puntos — Jugá 10 y ganás 1 gratis",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#000000",
-  "theme_color": "#000000",
+  "background_color": "#1B5E20",
+  "theme_color": "#1B5E20",
   "orientation": "portrait",
   "icons": [
     {
-      "src": "https://i.ibb.co/d4JYh6xc/icon-512-png.png",
+      "src": "/icon-192.jpg",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/jpeg",
+      "purpose": "any maskable"
     },
     {
-      "src": "https://i.ibb.co/d4JYh6xc/icon-512-png.png",
+      "src": "/icon-512.jpg",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/jpeg",
+      "purpose": "any maskable"
     }
   ]
 }
