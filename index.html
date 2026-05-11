@@ -137,12 +137,12 @@
     <div class="pantalla" id="pantalla-numero">
       <div class="input-group">
         <label>Ingresá tu número de WhatsApp</label>
-        <input type="tel" id="input-telefono" placeholder="506XXXXXXXX" maxlength="11" autocomplete="off">
+        <input type="tel" id="input-telefono" placeholder="8888-8888" maxlength="8" autocomplete="off">
       </div>
       <button class="btn-rojo" onclick="verificarNumero()">Consultar mis puntos</button>
       <div class="loading" id="loading-verificar">Verificando...</div>
       <div class="error-msg" id="error-verificar"></div>
-      <p class="nota">Ingresá tu número con código de país. Ej: 50688881111</p>
+      <p class="nota">Solo escribí los 8 dígitos de tu número. Ej: 88881111</p>
     </div>
 
     <div class="pantalla" id="pantalla-cliente">
@@ -183,11 +183,11 @@
       </div>
       <div class="input-group">
         <label>Número de cédula</label>
-        <input type="text" id="reg-cedula" placeholder="Ej: 110210948" autocomplete="off" inputmode="numeric">
+        <input type="text" id="reg-cedula" name="doc-id-higuito" placeholder="Ej: 110210948" autocomplete="new-password" inputmode="numeric" data-form-type="other" data-lpignore="true">
       </div>
       <div class="input-group">
         <label>Fecha de nacimiento</label>
-        <input type="tel" id="reg-fecha" placeholder="DD/MM/AAAA" autocomplete="off" maxlength="10" oninput="formatearFecha(this)">
+        <input type="tel" id="reg-fecha" placeholder="DD/MM/AAAA" autocomplete="off" maxlength="10">
       </div>
       <button class="btn-rojo" onclick="registrarCliente()">Registrarme ⚽</button>
       <div class="loading" id="loading-registro" style="display:none">Registrando...</div>
@@ -215,7 +215,6 @@
 
   </div>
 
-  <!-- Modal: notificaciones obligatorias -->
   <div class="modal-overlay" id="modal-notif-obligatorio" style="display:none">
     <div class="modal-box">
       <div class="modal-icono">🔔</div>
@@ -226,7 +225,6 @@
     </div>
   </div>
 
-  <!-- Modal: advertencia cancelar notificaciones -->
   <div class="modal-overlay" id="modal-cancelar-notif" style="display:none">
     <div class="modal-box">
       <div class="modal-icono">⚠️</div>
@@ -254,13 +252,25 @@
     });
   });
 
+  document.addEventListener('DOMContentLoaded', function() {
+    const fechaInput = document.getElementById('reg-fecha');
+    if (fechaInput) {
+      fechaInput.addEventListener('input', function(e) {
+        let valor = e.target.value.replace(/\D/g, '');
+        if (valor.length > 2) valor = valor.substring(0,2) + '/' + valor.substring(2);
+        if (valor.length > 5) valor = valor.substring(0,5) + '/' + valor.substring(5);
+        if (valor.length > 10) valor = valor.substring(0,10);
+        e.target.value = valor;
+      });
+    }
+  });
+
   window.onload = async function() {
     const listo = localStorage.getItem('higuito_listo');
     if (listo === 'ok') {
       const telGuardado = localStorage.getItem('higuito_telefono');
       if (telGuardado) {
         telefonoActual = telGuardado;
-        // Mostrar cache inmediatamente sin esperar al servidor
         const cacheStr = localStorage.getItem('higuito_cache_cliente');
         if (cacheStr) {
           const cache = JSON.parse(cacheStr);
@@ -268,9 +278,7 @@
         } else {
           mostrarPantalla('pantalla-cargando');
         }
-        // Actualizar en segundo plano
         cargarClienteDirecto(telGuardado);
-        // Verificar notificaciones en segundo plano
         verificarEstadoNotificaciones(telGuardado);
       } else {
         mostrarPantalla('pantalla-numero');
@@ -408,7 +416,6 @@
       const resp = await fetch(SCRIPT_URL + '?accion=verificar&telefono=' + telefono);
       const data = await resp.json();
       if (data.encontrado) {
-        // Guardar en cache para próxima vez
         localStorage.setItem('higuito_cache_cliente', JSON.stringify(data));
         const osId = localStorage.getItem('higuito_onesignal_id');
         if (!osId) {
@@ -422,7 +429,6 @@
         } else {
           await guardarOneSignalId(telefono, osId);
         }
-        // Actualizar pantalla con datos frescos
         mostrarCliente(data);
       } else {
         localStorage.removeItem('higuito_telefono');
@@ -430,7 +436,6 @@
         mostrarPantalla('pantalla-numero');
       }
     } catch(e) {
-      // Si falla la conexión usar cache — ya está mostrado
       console.log('Error cargando cliente:', e);
     }
   }
@@ -462,9 +467,13 @@
   }
 
   async function verificarNumero() {
-    const telefono = document.getElementById('input-telefono').value.trim();
-    if (!telefono || telefono.length < 10) {
-      mostrarError('error-verificar', 'Ingresá un número válido con código de país.');
+    let telefono = document.getElementById('input-telefono').value.trim().replace(/\D/g, '');
+    if (telefono.startsWith('506') && telefono.length === 11) {
+      // Ya tiene codigo de pais
+    } else if (telefono.length === 8) {
+      telefono = '506' + telefono;
+    } else {
+      mostrarError('error-verificar', 'Ingresá tu número de 8 dígitos.');
       return;
     }
     document.getElementById('loading-verificar').style.display = 'block';
@@ -603,14 +612,6 @@
     }
   }
 
-  function formatearFecha(input) {
-  var valor = input.value.replace(/\D/g, '');
-  if (valor.length > 2) valor = valor.substring(0,2) + '/' + valor.substring(2);
-  if (valor.length > 5) valor = valor.substring(0,5) + '/' + valor.substring(5);
-  if (valor.length > 10) valor = valor.substring(0,10);
-  input.value = valor;
-}
-  
   async function registrarCliente() {
     const nombre = document.getElementById('reg-nombre').value.trim();
     const cedula = document.getElementById('reg-cedula').value.trim();
