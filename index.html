@@ -252,41 +252,7 @@
     });
   });
 
-  document.addEventListener('DOMContentLoaded', function() {
-    const fechaInput = document.getElementById('reg-fecha');
-    if (fechaInput) {
-      fechaInput.addEventListener('input', function(e) {
-        let valor = e.target.value.replace(/\D/g, '');
-        if (valor.length > 2) valor = valor.substring(0,2) + '/' + valor.substring(2);
-        if (valor.length > 5) valor = valor.substring(0,5) + '/' + valor.substring(5);
-        if (valor.length > 10) valor = valor.substring(0,10);
-        e.target.value = valor;
-        setTimeout(function() {
-      const container = document.getElementById('cedula-container');
-      if (container) {
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.id = 'reg-cedula';
-        input.placeholder = 'Ej: 110210948';
-        input.setAttribute('inputmode', 'numeric');
-        input.setAttribute('autocomplete', 'off');
-        input.setAttribute('autocorrect', 'off');
-        input.setAttribute('autocapitalize', 'off');
-        input.setAttribute('spellcheck', 'false');
-        input.style.width = '100%';
-        input.style.padding = '16px';
-        input.style.border = '2px solid #ddd';
-        input.style.borderRadius = '8px';
-        input.style.fontSize = '20px';
-        input.style.textAlign = 'center';
-        input.style.letterSpacing = '2px';
-        container.appendChild(input);
-      }
-    }, 500);
-      });
-    }
-  });
-
+  DOMContentLoaded
   window.onload = async function() {
     const listo = localStorage.getItem('higuito_listo');
     if (listo === 'ok') {
