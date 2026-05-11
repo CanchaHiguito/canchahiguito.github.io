@@ -78,6 +78,8 @@
     .modal-box p { font-size: 13px; color: #555; line-height: 1.6; margin-bottom: 20px; }
     .modal-box .btn-rojo { margin-top: 0; }
     .modal-box .btn-gris { margin-top: 8px; font-size: 13px; color: #B71C1C; background: none; border: none; cursor: pointer; text-decoration: underline; padding: 8px; }
+    .cedula-input { width: 100%; padding: 16px; border: 2px solid #ddd; border-radius: 8px; font-size: 20px; text-align: center; letter-spacing: 2px; box-sizing: border-box; }
+    .cedula-input:focus { outline: none; border-color: #B71C1C; }
   </style>
 </head>
 <body>
@@ -183,7 +185,7 @@
       </div>
       <div class="input-group">
         <label>Número de cédula</label>
-        <div id="cedula-container" style="width:100%;margin-bottom:0"></div>
+        <div id="cedula-container" style="width:100%"></div>
       </div>
       <div class="input-group">
         <label>Fecha de nacimiento</label>
@@ -252,8 +254,39 @@
     });
   });
 
-  DOMContentLoaded
+  function crearCampoCedula() {
+    const container = document.getElementById('cedula-container');
+    if (!container || document.getElementById('reg-cedula')) return;
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.id = 'reg-cedula';
+    input.className = 'cedula-input';
+    input.placeholder = 'Ej: 110210948';
+    input.setAttribute('inputmode', 'numeric');
+    input.setAttribute('autocomplete', 'off');
+    input.setAttribute('autocorrect', 'off');
+    input.setAttribute('autocapitalize', 'off');
+    input.setAttribute('spellcheck', 'false');
+    container.appendChild(input);
+  }
+
+  function iniciarFormatoFecha() {
+    const fechaInput = document.getElementById('reg-fecha');
+    if (!fechaInput || fechaInput._formatoActivo) return;
+    fechaInput._formatoActivo = true;
+    fechaInput.addEventListener('input', function(e) {
+      let valor = e.target.value.replace(/\D/g, '');
+      if (valor.length > 2) valor = valor.substring(0,2) + '/' + valor.substring(2);
+      if (valor.length > 5) valor = valor.substring(0,5) + '/' + valor.substring(5);
+      if (valor.length > 10) valor = valor.substring(0,10);
+      e.target.value = valor;
+    });
+  }
+
   window.onload = async function() {
+    crearCampoCedula();
+    iniciarFormatoFecha();
+
     const listo = localStorage.getItem('higuito_listo');
     if (listo === 'ok') {
       const telGuardado = localStorage.getItem('higuito_telefono');
@@ -326,11 +359,7 @@
     localStorage.clear();
     document.querySelector('.header').style.display = 'none';
     document.querySelector('.pantallas').style.display = 'none';
-    document.body.innerHTML = `
-      <div style="background:#000;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center;">
-        <div style="font-size:48px;margin-bottom:16px">👋</div>
-        <p style="color:#fff;font-size:16px;line-height:1.7">Tu registro fue eliminado.<br>Si cambiás de opinión podés volver a registrarte en cualquier momento.</p>
-      </div>`;
+    document.body.innerHTML = '<div style="background:#000;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center;"><div style="font-size:48px;margin-bottom:16px">👋</div><p style="color:#fff;font-size:16px;line-height:1.7">Tu registro fue eliminado.<br>Si cambiás de opinión podés volver a registrarte en cualquier momento.</p></div>';
   }
 
   function confirmarInstalacion() {
@@ -349,11 +378,7 @@
 
   function cerrarAppDefinitivo() {
     document.getElementById('modal-notif-obligatorio').style.display = 'none';
-    document.body.innerHTML = `
-      <div style="background:#000;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center;">
-        <div style="font-size:48px;margin-bottom:16px">👋</div>
-        <p style="color:#fff;font-size:16px;line-height:1.7">Sin notificaciones no podés participar en la promo.<br><br>Si cambiás de opinión podés volver a abrir la app.</p>
-      </div>`;
+    document.body.innerHTML = '<div style="background:#000;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center;"><div style="font-size:48px;margin-bottom:16px">👋</div><p style="color:#fff;font-size:16px;line-height:1.7">Sin notificaciones no podés participar en la promo.<br><br>Si cambiás de opinión podés volver a abrir la app.</p></div>';
   }
 
   async function pedirNotificaciones() {
@@ -448,6 +473,12 @@
       el.classList.add('activa');
     } else if (el.classList.contains('pantalla')) {
       el.classList.add('activa');
+      if (id === 'pantalla-registro') {
+        setTimeout(function() {
+          crearCampoCedula();
+          iniciarFormatoFecha();
+        }, 50);
+      }
     } else {
       el.style.display = 'flex';
       el.classList.add('activa');
@@ -457,11 +488,11 @@
   async function verificarNumero() {
     let telefono = document.getElementById('input-telefono').value.trim().replace(/\D/g, '');
     if (telefono.startsWith('506') && telefono.length === 11) {
-      // Ya tiene codigo de pais
+      // ya tiene codigo de pais
     } else if (telefono.length === 8) {
       telefono = '506' + telefono;
     } else {
-      mostrarError('error-verificar', 'Ingresá tu número de 8 dígitos.');
+      mostrarError('error-verificar', 'Ingresa tu numero de 8 digitos.');
       return;
     }
     document.getElementById('loading-verificar').style.display = 'block';
@@ -493,7 +524,7 @@
       }
     } catch(e) {
       document.getElementById('loading-verificar').style.display = 'none';
-      mostrarError('error-verificar', 'Error de conexión. Intentá de nuevo.');
+      mostrarError('error-verificar', 'Error de conexion. Intenta de nuevo.');
     }
   }
 
@@ -507,7 +538,7 @@
     const faltan = Math.max(10 - data.puntos, 0);
     document.getElementById('faltan-texto').innerHTML = faltan > 0
       ? 'Te faltan <strong>' + faltan + '</strong> punto' + (faltan > 1 ? 's' : '') + ' para tu partido gratis'
-      : '¡Ya podés canjear tu partido gratis!';
+      : '¡Ya podes canjear tu partido gratis!';
     const hoy = new Date().toLocaleDateString('es-CR');
     const ultimoPunto = data.ultimoPunto ? data.ultimoPunto.substring(0, 10) : '';
     const fechaUltimo = ultimoPunto ? new Date(ultimoPunto.split('/').reverse().join('-')).toLocaleDateString('es-CR') : '';
@@ -557,7 +588,7 @@
     const faltan = Math.max(10 - puntos, 0);
     document.getElementById('faltan-texto').innerHTML = faltan > 0
       ? 'Te faltan <strong>' + faltan + '</strong> punto' + (faltan > 1 ? 's' : '') + ' para tu partido gratis'
-      : '¡Ya podés canjear tu partido gratis!';
+      : '¡Ya podes canjear tu partido gratis!';
     document.getElementById('qr-wrap').style.display = 'none';
     document.getElementById('punto-asignado').style.display = 'block';
     let segundos = 5;
@@ -581,32 +612,20 @@
     try {
       await fetch(SCRIPT_URL + '?accion=canjear&telefono=' + telefonoActual);
       localStorage.removeItem('higuito_cache_cliente');
-      document.getElementById('pantalla-premio').innerHTML = `
-        <div style="background:#000;padding:24px 16px;text-align:center;border-bottom:3px solid #F9A825;flex-shrink:0;">
-          <h2 style="color:#F9A825;font-size:22px;font-weight:900;margin:0">✅ ¡Premio canjeado!</h2>
-          <p style="color:#fff;font-size:13px;margin-top:4px">Tus puntos volvieron a 0</p>
-        </div>
-        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 20px;text-align:center;background:#fff;">
-          <div style="font-size:72px;margin-bottom:16px">⚽</div>
-          <p style="font-size:16px;color:#333;line-height:1.7;margin-bottom:24px">
-            <strong>¡Disfrutá tu partido gratis!</strong><br>Ya podés empezar a acumular puntos nuevamente.<br>¡Nos vemos en la cancha!
-          </p>
-          <button onclick="location.reload()" style="width:100%;padding:16px;background:#B71C1C;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:bold;cursor:pointer">
-            Volver al inicio
-          </button>
-        </div>`;
+      document.getElementById('pantalla-premio').innerHTML = '<div style="background:#000;padding:24px 16px;text-align:center;border-bottom:3px solid #F9A825;flex-shrink:0;"><h2 style="color:#F9A825;font-size:22px;font-weight:900;margin:0">✅ ¡Premio canjeado!</h2><p style="color:#fff;font-size:13px;margin-top:4px">Tus puntos volvieron a 0</p></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 20px;text-align:center;background:#fff;"><div style="font-size:72px;margin-bottom:16px">⚽</div><p style="font-size:16px;color:#333;line-height:1.7;margin-bottom:24px"><strong>¡Disfruta tu partido gratis!</strong><br>Ya podes empezar a acumular puntos nuevamente.<br>¡Nos vemos en la cancha!</p><button onclick="location.reload()" style="width:100%;padding:16px;background:#B71C1C;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:bold;cursor:pointer">Volver al inicio</button></div>';
     } catch(e) {
-      alert('Error al canjear. Mostrá la pantalla al encargado de todas formas.');
+      alert('Error al canjear. Mostra la pantalla al encargado de todas formas.');
     }
   }
 
   async function registrarCliente() {
     const nombre = document.getElementById('reg-nombre').value.trim();
-    const cedula = document.getElementById('reg-cedula').value.trim();
+    const cedulaEl = document.getElementById('reg-cedula');
+    const cedula = cedulaEl ? cedulaEl.value.trim() : '';
     const fecha = document.getElementById('reg-fecha').value.trim();
-    if (!nombre) { mostrarError('error-registro', 'Ingresá tu nombre.'); return; }
-    if (!cedula) { mostrarError('error-registro', 'Ingresá tu número de cédula.'); return; }
-    if (!fecha) { mostrarError('error-registro', 'Ingresá tu fecha de nacimiento.'); return; }
+    if (!nombre) { mostrarError('error-registro', 'Ingresa tu nombre.'); return; }
+    if (!cedula) { mostrarError('error-registro', 'Ingresa tu numero de cedula.'); return; }
+    if (!fecha) { mostrarError('error-registro', 'Ingresa tu fecha de nacimiento.'); return; }
     document.getElementById('loading-registro').style.display = 'block';
     document.getElementById('error-registro').style.display = 'none';
     try {
@@ -627,32 +646,19 @@
             }
           });
         }
-        document.getElementById('pantalla-registro').innerHTML = `
-          <div style="text-align:center;padding:24px 16px">
-            <div style="font-size:56px;margin-bottom:12px">🎉</div>
-            <h3 style="color:#2E7D32;font-size:20px;margin-bottom:8px">¡Registro exitoso!</h3>
-            <p style="color:#555;font-size:14px;line-height:1.7">
-              Bienvenido <strong>${nombre}</strong>.<br>
-              Ya podés mostrar tu QR al encargado.<br><br>
-              🏆 Con 10 partidos jugados ganás uno GRATIS.
-            </p>
-            <button class="btn-verde" style="margin-top:16px" onclick="location.reload()">
-              Ver mi QR ⚽
-            </button>
-          </div>
-        `;
+        document.getElementById('pantalla-registro').innerHTML = '<div style="text-align:center;padding:24px 16px"><div style="font-size:56px;margin-bottom:12px">🎉</div><h3 style="color:#2E7D32;font-size:20px;margin-bottom:8px">¡Registro exitoso!</h3><p style="color:#555;font-size:14px;line-height:1.7">Bienvenido <strong>' + nombre + '</strong>.<br>Ya podes mostrar tu QR al encargado.<br><br>🏆 Con 10 partidos jugados ganas uno GRATIS.</p><button class="btn-verde" style="margin-top:16px" onclick="location.reload()">Ver mi QR ⚽</button></div>';
       } else {
-        mostrarError('error-registro', data.error || 'Error al registrar. Intentá de nuevo.');
+        mostrarError('error-registro', data.error || 'Error al registrar. Intenta de nuevo.');
       }
     } catch(e) {
       document.getElementById('loading-registro').style.display = 'none';
-      mostrarError('error-registro', 'Error de conexión. Intentá de nuevo.');
+      mostrarError('error-registro', 'Error de conexion. Intenta de nuevo.');
     }
   }
 
   function mostrarError(id, msg) {
     const el = document.getElementById(id);
-    el.textContent   = msg;
+    el.textContent = msg;
     el.style.display = 'block';
   }
 
