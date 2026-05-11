@@ -187,7 +187,7 @@
       </div>
       <div class="input-group">
         <label>Fecha de nacimiento</label>
-        <input type="text" id="reg-fecha" placeholder="DD/MM/AAAA" autocomplete="off" inputmode="numeric">
+        <input type="tel" id="reg-fecha" placeholder="DD/MM/AAAA" autocomplete="off" maxlength="10" oninput="formatearFecha(this)">
       </div>
       <button class="btn-rojo" onclick="registrarCliente()">Registrarme ⚽</button>
       <div class="loading" id="loading-registro" style="display:none">Registrando...</div>
