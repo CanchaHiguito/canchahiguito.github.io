@@ -255,10 +255,20 @@
   // ============================================================
   // SONIDOS — más fuertes y más largos
   // ============================================================
- function sonarBeep(tipo) {
-    try {
-      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      if (audioCtx.state === 'suspended') audioCtx.resume();
+function sonarBeep(tipo) {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    audioCtx.resume().then(function() {
+      _reproducirSonido(tipo);
+    });
+    return;
+  } catch(e) {
+    console.log('Error de audio:', e);
+  }
+}
+
+function _reproducirSonido(tipo) {
+  try {
 
       if (tipo === 'ok') {
         // PUNTO SUMADO — Sirena ascendente alegre por 4 segundos
