@@ -18,6 +18,7 @@
     .resultado.ok { background: rgba(46,125,50,0.97); }
     .resultado.error { background: rgba(183,28,28,0.97); }
     .resultado.ya { background: rgba(245,127,23,0.97); }
+    .resultado.cerrada { background: rgba(100,100,100,0.97); }
     .resultado.premio { background: rgba(0,0,0,0.97); border-top: 3px solid #F9A825; }
     .resultado h3 { color: #fff; font-size: 20px; font-weight: 900; margin-bottom: 4px; }
     .resultado p { color: rgba(255,255,255,0.9); font-size: 14px; margin-bottom: 12px; }
@@ -141,6 +142,16 @@
       <button class="btn-cerrar-admin" onclick="cerrarAdmin()">✕ Cerrar</button>
     </div>
     <div class="admin-menu">
+
+      <div style="background:#1a1a1a;border-radius:12px;padding:16px;margin-bottom:4px;">
+        <p style="color:#aaa;font-size:12px;margin-bottom:10px;font-weight:bold">🔐 CONTROL DEL ESCÁNER</p>
+        <div style="display:flex;gap:10px;">
+          <button onclick="toggleVentana('abrir')" style="flex:1;padding:14px;background:#2E7D32;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:bold;cursor:pointer">✅ Abrir escáner</button>
+          <button onclick="toggleVentana('cerrar')" style="flex:1;padding:14px;background:#B71C1C;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:bold;cursor:pointer">🔒 Cerrar escáner</button>
+        </div>
+        <p id="estado-ventana" style="color:#aaa;font-size:12px;text-align:center;margin-top:8px">Verificando estado...</p>
+      </div>
+
       <button class="admin-btn campanas" onclick="abrirSeccion('campanas')">
         <div class="icono">📤</div>
         <div class="info"><h3>Campañas WhatsApp</h3><p>Enviar mensajes masivos por grupos de edad</p></div>
@@ -253,33 +264,25 @@
   window.onload = function() { iniciarEscaner(); };
 
   // ============================================================
-  // SONIDOS — más fuertes y más largos
+  // SONIDOS
   // ============================================================
-function sonarBeep(tipo) {
-  try {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    audioCtx.resume().then(function() {
-      _reproducirSonido(tipo);
-    });
-    return;
-  } catch(e) {
-    console.log('Error de audio:', e);
+  function sonarBeep(tipo) {
+    try {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      audioCtx.resume().then(function() { _reproducirSonido(tipo); });
+    } catch(e) { console.log('Error de audio:', e); }
   }
-}
 
-function _reproducirSonido(tipo) {
-  try {
-
+  function _reproducirSonido(tipo) {
+    try {
       if (tipo === 'ok') {
-        // PUNTO SUMADO — Sirena ascendente alegre por 4 segundos
         const duracionTotal = 4;
         const numCiclos = 8;
         for (let c = 0; c < numCiclos; c++) {
           const tInicio = c * (duracionTotal / numCiclos);
           const osc = audioCtx.createOscillator();
           const gain = audioCtx.createGain();
-          osc.connect(gain);
-          gain.connect(audioCtx.destination);
+          osc.connect(gain); gain.connect(audioCtx.destination);
           osc.type = 'square';
           osc.frequency.setValueAtTime(800, audioCtx.currentTime + tInicio);
           osc.frequency.linearRampToValueAtTime(1400, audioCtx.currentTime + tInicio + 0.4);
@@ -291,23 +294,20 @@ function _reproducirSonido(tipo) {
           osc.stop(audioCtx.currentTime + tInicio + 0.5);
         }
       } else if (tipo === 'premio') {
-        // PARTIDO GRATIS — Fanfarria de victoria por 3 segundos (notas musicales)
         const notas = [
-          { freq: 523,  t: 0,   dur: 0.25 },
+          { freq: 523,  t: 0,    dur: 0.25 },
           { freq: 659,  t: 0.25, dur: 0.25 },
           { freq: 784,  t: 0.5,  dur: 0.25 },
-          { freq: 1047, t: 0.75, dur: 0.5 },
+          { freq: 1047, t: 0.75, dur: 0.5  },
           { freq: 784,  t: 1.25, dur: 0.25 },
-          { freq: 1047, t: 1.5,  dur: 0.5 },
-          { freq: 1319, t: 2.0,  dur: 1.0 }
+          { freq: 1047, t: 1.5,  dur: 0.5  },
+          { freq: 1319, t: 2.0,  dur: 1.0  }
         ];
         notas.forEach(n => {
           const osc = audioCtx.createOscillator();
           const gain = audioCtx.createGain();
-          osc.connect(gain);
-          gain.connect(audioCtx.destination);
-          osc.type = 'square';
-          osc.frequency.value = n.freq;
+          osc.connect(gain); gain.connect(audioCtx.destination);
+          osc.type = 'square'; osc.frequency.value = n.freq;
           gain.gain.setValueAtTime(0, audioCtx.currentTime + n.t);
           gain.gain.linearRampToValueAtTime(1.0, audioCtx.currentTime + n.t + 0.02);
           gain.gain.setValueAtTime(1.0, audioCtx.currentTime + n.t + n.dur - 0.05);
@@ -316,31 +316,24 @@ function _reproducirSonido(tipo) {
           osc.stop(audioCtx.currentTime + n.t + n.dur);
         });
       } else if (tipo === 'error') {
-        // ERROR / YA REGISTRADO — Sirena de ambulancia por 3 segundos
         const duracionTotal = 3;
         const numCiclos = 4;
         for (let c = 0; c < numCiclos; c++) {
           const tInicio = c * (duracionTotal / numCiclos);
-          // Tono alto
           const osc1 = audioCtx.createOscillator();
           const gain1 = audioCtx.createGain();
-          osc1.connect(gain1);
-          gain1.connect(audioCtx.destination);
-          osc1.type = 'square';
-          osc1.frequency.value = 950;
+          osc1.connect(gain1); gain1.connect(audioCtx.destination);
+          osc1.type = 'square'; osc1.frequency.value = 950;
           gain1.gain.setValueAtTime(0, audioCtx.currentTime + tInicio);
           gain1.gain.linearRampToValueAtTime(1.0, audioCtx.currentTime + tInicio + 0.02);
           gain1.gain.setValueAtTime(1.0, audioCtx.currentTime + tInicio + 0.35);
           gain1.gain.linearRampToValueAtTime(0, audioCtx.currentTime + tInicio + 0.37);
           osc1.start(audioCtx.currentTime + tInicio);
           osc1.stop(audioCtx.currentTime + tInicio + 0.37);
-          // Tono bajo
           const osc2 = audioCtx.createOscillator();
           const gain2 = audioCtx.createGain();
-          osc2.connect(gain2);
-          gain2.connect(audioCtx.destination);
-          osc2.type = 'square';
-          osc2.frequency.value = 700;
+          osc2.connect(gain2); gain2.connect(audioCtx.destination);
+          osc2.type = 'square'; osc2.frequency.value = 700;
           gain2.gain.setValueAtTime(0, audioCtx.currentTime + tInicio + 0.37);
           gain2.gain.linearRampToValueAtTime(1.0, audioCtx.currentTime + tInicio + 0.39);
           gain2.gain.setValueAtTime(1.0, audioCtx.currentTime + tInicio + 0.72);
@@ -349,10 +342,9 @@ function _reproducirSonido(tipo) {
           osc2.stop(audioCtx.currentTime + tInicio + 0.74);
         }
       }
-    } catch(e) {
-      console.log('Error de audio:', e);
-    }
+    } catch(e) { console.log('Error de audio:', e); }
   }
+
   // ============================================================
   // ESCÁNER
   // ============================================================
@@ -361,14 +353,9 @@ function _reproducirSonido(tipo) {
     html5QrCode.start(
       { facingMode: "environment" },
       { fps: 10, qrbox: { width: 220, height: 220 } },
-      onQRDetectado,
-      () => {}
+      onQRDetectado, () => {}
     ).catch(() => {
-      document.querySelector('.camara-wrap').innerHTML = `
-        <div style="color:#fff;text-align:center;padding:32px 20px;">
-          <div style="font-size:48px;margin-bottom:16px">📷</div>
-          <p>No se pudo acceder a la cámara.<br>Permitá el acceso en la configuración.</p>
-        </div>`;
+      document.querySelector('.camara-wrap').innerHTML = '<div style="color:#fff;text-align:center;padding:32px 20px;"><div style="font-size:48px;margin-bottom:16px">📷</div><p>No se pudo acceder a la cámara.<br>Permitá el acceso en la configuración.</p></div>';
     });
   }
 
@@ -409,6 +396,16 @@ function _reproducirSonido(tipo) {
           res.style.display = 'block';
           iniciarCuentaRegresiva();
         }
+      } else if (data.motivo === 'ventana_cerrada') {
+        sonarBeep('error');
+        res.className = 'resultado cerrada';
+        document.getElementById('res-titulo').textContent = '🔒 Escáner cerrado';
+        document.getElementById('res-puntos').style.display = 'none';
+        document.getElementById('res-texto').textContent = 'El encargado debe abrir el escáner desde el panel Admin.';
+        document.getElementById('btn-siguiente').textContent = '✅ Entendido';
+        document.getElementById('btn-siguiente').className = 'btn-siguiente';
+        res.style.display = 'block';
+        iniciarCuentaRegresiva();
       } else if (data.motivo === 'ya_registrado') {
         sonarBeep('error');
         res.className = 'resultado ya';
@@ -467,6 +464,7 @@ function _reproducirSonido(tipo) {
   }
 
   function mostrarPinAdmin() {
+    verificarEstadoVentana();
     document.getElementById('pin-overlay').style.display = 'flex';
     document.getElementById('pin-input').value = '';
     document.getElementById('pin-error').style.display = 'none';
@@ -491,6 +489,26 @@ function _reproducirSonido(tipo) {
 
   function cerrarAdmin() {
     document.getElementById('admin-panel').classList.remove('activo');
+  }
+
+  function toggleVentana(accion) {
+    var url = SCRIPT_URL + '?accion=' + (accion === 'abrir' ? 'abrirVentana' : 'cerrarVentana');
+    fetch(url).then(r => r.json()).then(() => { verificarEstadoVentana(); });
+  }
+
+  function verificarEstadoVentana() {
+    fetch(SCRIPT_URL + '?accion=estadoVentana')
+      .then(r => r.json())
+      .then(d => {
+        var el = document.getElementById('estado-ventana');
+        if (d.estado === 'abierta') {
+          el.textContent = '✅ Escáner ABIERTO — se pueden sumar puntos';
+          el.style.color = '#81C784';
+        } else {
+          el.textContent = '🔒 Escáner CERRADO — no se pueden sumar puntos';
+          el.style.color = '#EF9A9A';
+        }
+      });
   }
 
   function abrirSeccion(seccion) {
@@ -523,11 +541,8 @@ function _reproducirSonido(tipo) {
     document.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('activo'));
     document.getElementById('seg-' + seg).classList.add('activo');
     const customDiv = document.getElementById('edades-custom');
-    if (seg === 'custom') {
-      customDiv.classList.add('visible');
-    } else {
-      customDiv.classList.remove('visible');
-    }
+    if (seg === 'custom') { customDiv.classList.add('visible'); }
+    else { customDiv.classList.remove('visible'); }
   }
 
   function onUrlImagen() {
@@ -537,19 +552,11 @@ function _reproducirSonido(tipo) {
       document.getElementById('img-preview').style.display = 'none';
       document.getElementById('drop-zone').style.display = 'block';
       document.getElementById('file-input').value = '';
-    } else {
-      imagenUrl = '';
-    }
+    } else { imagenUrl = ''; }
   }
 
-  function onDragOver(e) {
-    e.preventDefault();
-    document.getElementById('drop-zone').classList.add('dragover');
-  }
-
-  function onDragLeave(e) {
-    document.getElementById('drop-zone').classList.remove('dragover');
-  }
+  function onDragOver(e) { e.preventDefault(); document.getElementById('drop-zone').classList.add('dragover'); }
+  function onDragLeave(e) { document.getElementById('drop-zone').classList.remove('dragover'); }
 
   function onDrop(e) {
     e.preventDefault();
@@ -616,29 +623,18 @@ function _reproducirSonido(tipo) {
     const mensaje = document.getElementById('push-mensaje').value.trim();
     const waMensaje = document.getElementById('push-wa-mensaje').value.trim();
     const edadesCustom = document.getElementById('edades-input').value.trim();
-
     if (!titulo) { alert('Escribí un título para la notificación.'); return; }
     if (!mensaje) { alert('Escribí un mensaje para la notificación.'); return; }
     if (!waMensaje) { alert('Escribí el mensaje que aparecerá en WhatsApp.'); return; }
-    if (segmentoActual === 'custom' && !edadesCustom) {
-      alert('Escribí las edades a las que querés enviar.'); return;
-    }
-
+    if (segmentoActual === 'custom' && !edadesCustom) { alert('Escribí las edades a las que querés enviar.'); return; }
     const estadoImg = document.getElementById('img-estado').textContent;
     if (estadoImg.includes('Subiendo')) { alert('Esperá que termine de subir la imagen.'); return; }
-
     const waUrl = 'https://canchahiguito.github.io/wa.html?msg=' + encodeURIComponent(waMensaje);
-
     document.getElementById('btn-enviar').disabled = true;
     document.getElementById('btn-enviar').textContent = '⏳ Enviando...';
     document.getElementById('push-resultado').style.display = 'none';
-
     try {
-      const params = new URLSearchParams({
-        accion: 'enviarPush', titulo, mensaje,
-        imagen: imagenUrl, url: waUrl,
-        segmento: segmentoActual, edades: edadesCustom
-      });
+      const params = new URLSearchParams({ accion: 'enviarPush', titulo, mensaje, imagen: imagenUrl, url: waUrl, segmento: segmentoActual, edades: edadesCustom });
       const resp = await fetch(SCRIPT_URL + '?' + params.toString());
       const data = await resp.json();
       const res = document.getElementById('push-resultado');
@@ -660,7 +656,6 @@ function _reproducirSonido(tipo) {
       document.getElementById('push-resultado-texto').textContent = '❌ Error de conexión. Intentá de nuevo.';
       res.style.display = 'block';
     }
-
     document.getElementById('btn-enviar').disabled = false;
     document.getElementById('btn-enviar').textContent = '🔔 Enviar notificación';
   }
