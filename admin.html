@@ -50,6 +50,7 @@
     .admin-btn.campanas { border-left: 4px solid #F9A825; }
     .admin-btn.reservas { border-left: 4px solid #2E7D32; }
     .admin-btn.push { border-left: 4px solid #1565C0; }
+    .admin-btn.encargados { border-left: 4px solid #9C27B0; }
     .push-panel { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #111; display: none; flex-direction: column; z-index: 100; overflow-y: auto; }
     .push-panel.activo { display: flex; }
     .push-header { background: #000; padding: 16px 20px; border-bottom: 3px solid #1565C0; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
@@ -99,6 +100,30 @@
     .separador-o { text-align: center; color: #555; font-size: 12px; margin: 10px 0; }
     .url-input-wrap input { width: 100%; padding: 12px; background: #111; border: 1px solid #333; border-radius: 8px; color: #fff; font-size: 13px; margin-top: 4px; }
     .url-input-wrap input:focus { outline: none; border-color: #42A5F5; }
+    /* ENCARGADOS */
+    .enc-panel { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #111; display: none; flex-direction: column; z-index: 100; overflow-y: auto; }
+    .enc-panel.activo { display: flex; }
+    .enc-header { background: #000; padding: 16px 20px; border-bottom: 3px solid #9C27B0; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+    .enc-header h2 { color: #CE93D8; font-size: 16px; font-weight: 900; }
+    .enc-body { padding: 20px; flex: 1; }
+    .enc-card { background: #1a1a1a; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+    .enc-card label { display: block; font-size: 13px; color: #aaa; margin-bottom: 6px; font-weight: bold; }
+    .enc-card input { width: 100%; padding: 12px; background: #111; border: 1px solid #333; border-radius: 8px; color: #fff; font-size: 14px; box-sizing: border-box; margin-bottom: 10px; }
+    .enc-card input:focus { outline: none; border-color: #9C27B0; }
+    .btn-agregar { width: 100%; padding: 14px; background: #9C27B0; color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; }
+    .btn-resumen { width: 100%; padding: 14px; background: #1565C0; color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; margin-bottom: 12px; }
+    .enc-lista { list-style: none; padding: 0; }
+    .enc-item { background: #111; border: 1px solid #333; border-radius: 10px; padding: 14px; margin-bottom: 10px; }
+    .enc-item h4 { color: #fff; font-size: 15px; margin-bottom: 4px; }
+    .enc-item p { color: #aaa; font-size: 12px; margin-bottom: 8px; }
+    .enc-item .enc-btns { display: flex; gap: 8px; }
+    .enc-item .btn-toggle { flex: 1; padding: 8px; border: none; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; }
+    .enc-item .btn-toggle.activo { background: #1B5E20; color: #fff; }
+    .enc-item .btn-toggle.inactivo { background: #555; color: #fff; }
+    .enc-item .btn-del { padding: 8px 12px; background: #B71C1C; color: #fff; border: none; border-radius: 6px; font-size: 12px; cursor: pointer; }
+    .enc-resultado { background: #1a1a1a; border-radius: 8px; padding: 12px; margin-top: 10px; display: none; text-align: center; font-size: 13px; }
+    .enc-ok { border: 1px solid #2E7D32; color: #81C784; }
+    .enc-err { border: 1px solid #B71C1C; color: #EF9A9A; }
   </style>
 </head>
 <body>
@@ -142,7 +167,6 @@
       <button class="btn-cerrar-admin" onclick="cerrarAdmin()">✕ Cerrar</button>
     </div>
     <div class="admin-menu">
-
       <button class="admin-btn campanas" onclick="abrirSeccion('campanas')">
         <div class="icono">📤</div>
         <div class="info"><h3>Campañas WhatsApp</h3><p>Enviar mensajes masivos por grupos de edad</p></div>
@@ -155,6 +179,10 @@
         <div class="icono">🔔</div>
         <div class="info"><h3>Notificaciones Push</h3><p>Enviar notificaciones segmentadas por edad</p></div>
       </button>
+      <button class="admin-btn encargados" onclick="abrirSeccion('encargados')">
+        <div class="icono">👥</div>
+        <div class="info"><h3>Encargados</h3><p>Gestionar turnos y notificaciones</p></div>
+      </button>
     </div>
   </div>
 
@@ -164,7 +192,6 @@
       <button class="btn-cerrar-admin" onclick="cerrarPush()">✕ Cerrar</button>
     </div>
     <div class="push-body">
-
       <div class="preview-box">
         <div class="preview-titulo">Vista previa</div>
         <div class="preview-notif">
@@ -179,23 +206,19 @@
           <p>Al tocar → WhatsApp: <strong id="preview-wa-text">Mensaje en WhatsApp...</strong></p>
         </div>
       </div>
-
       <div class="push-grupo">
         <label>Título de la notificación</label>
         <input type="text" id="push-titulo" placeholder="Ej: ¡Promo especial este viernes!" oninput="actualizarPreview()">
       </div>
-
       <div class="push-grupo">
         <label>Mensaje de la notificación</label>
         <textarea id="push-mensaje" placeholder="Ej: 2x1 en canchas de 8pm a 10pm." oninput="actualizarPreview()"></textarea>
       </div>
-
       <div class="push-grupo">
         <label>💬 Mensaje en WhatsApp al tocar</label>
         <input type="text" id="push-wa-mensaje" placeholder="Ej: Hola, vi la promo del 2x1 y quiero reservar ⚽" oninput="actualizarPreview()">
         <p class="hint">Este mensaje aparecerá pre-escrito en WhatsApp cuando el cliente toque la notificación</p>
       </div>
-
       <div class="push-grupo">
         <label>🖼️ Imagen de la notificación (opcional)</label>
         <div class="drop-zone" id="drop-zone" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
@@ -214,7 +237,6 @@
           <input type="text" id="push-imagen-url" placeholder="https://i.ibb.co/... (URL directa de la imagen)" oninput="onUrlImagen()">
         </div>
       </div>
-
       <div class="push-grupo">
         <label>Enviar a — Segmento por edad</label>
         <div class="segmentos">
@@ -229,19 +251,42 @@
           <p class="hint">Rangos con guión (20-35), edades exactas separadas por coma (25,30)</p>
         </div>
       </div>
-
       <button class="btn-enviar" id="btn-enviar" onclick="enviarNotificacion()">🔔 Enviar notificación</button>
-
       <div class="push-resultado" id="push-resultado">
         <p id="push-resultado-texto"></p>
       </div>
+    </div>
+  </div>
 
+  <div class="enc-panel" id="enc-panel">
+    <div class="enc-header">
+      <h2>👥 Encargados</h2>
+      <button class="btn-cerrar-admin" onclick="cerrarEncargados()">✕ Cerrar</button>
+    </div>
+    <div class="enc-body">
+      <button class="btn-resumen" onclick="enviarResumen()">📋 Enviar resumen del día a encargados en turno</button>
+      <div class="enc-card">
+        <label>Nombre</label>
+        <input type="text" id="enc-nombre" placeholder="Ej: Carlos">
+        <label>Teléfono (sin +, con código de país)</label>
+        <input type="tel" id="enc-tel" placeholder="Ej: 50688887777">
+        <label>Hora entrada</label>
+        <input type="text" id="enc-entrada" placeholder="Ej: 8:00 AM">
+        <label>Hora salida</label>
+        <input type="text" id="enc-salida" placeholder="Ej: 3:00 PM">
+        <button class="btn-agregar" onclick="agregarEncargado()">➕ Agregar encargado</button>
+        <div class="enc-resultado" id="enc-resultado"><p id="enc-res-txt"></p></div>
+      </div>
+      <div id="enc-lista-wrap">
+        <p style="color:#aaa;text-align:center;font-size:13px">Cargando...</p>
+      </div>
     </div>
   </div>
 
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
   const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyzpDCe_abY6qPBGhE7fPIZL8wjV5Fn7R4XBmhZxehKA5zDzrcyOIYbp8YdS6sAaw/exec';
+  const SCRIPT_AGENDA = 'https://script.google.com/macros/s/AKfycbxhC2x7_WXD47rdJDYjaRouvEd2Fz-ulhge0WwwSjShCP7L5DDVhnLiSW-w3TW0IaQWvA/exec';
   const IMGBB_API_KEY = '79d891f29823a6a596b4672c74a8d232';
   const PIN_ADMIN = '1787';
   const SEGUNDOS_AUTO = 3;
@@ -363,7 +408,6 @@
       const resp = await fetch(SCRIPT_URL + '?accion=sumarPunto&telefono=' + telefono);
       const data = await resp.json();
       const res = document.getElementById('resultado');
-
       if (data.ok) {
         if (data.premio) {
           sonarBeep('premio');
@@ -455,7 +499,6 @@
   }
 
   function mostrarPinAdmin() {
-    verificarEstadoVentana();
     document.getElementById('pin-overlay').style.display = 'flex';
     document.getElementById('pin-input').value = '';
     document.getElementById('pin-error').style.display = 'none';
@@ -492,24 +535,30 @@
       .then(r => r.json())
       .then(d => {
         var el = document.getElementById('estado-ventana');
-        if (d.estado === 'abierta') {
-          el.textContent = '✅ Escáner ABIERTO — se pueden sumar puntos';
-          el.style.color = '#81C784';
-        } else {
-          el.textContent = '🔒 Escáner CERRADO — no se pueden sumar puntos';
-          el.style.color = '#EF9A9A';
+        if (el) {
+          if (d.estado === 'abierta') {
+            el.textContent = '✅ Escáner ABIERTO — se pueden sumar puntos';
+            el.style.color = '#81C784';
+          } else {
+            el.textContent = '🔒 Escáner CERRADO — no se pueden sumar puntos';
+            el.style.color = '#EF9A9A';
+          }
         }
       });
   }
 
   function abrirSeccion(seccion) {
     if (seccion === 'campanas') {
-      window.open('https://script.google.com/macros/s/AKfycbyzpDCe_abY6qPBGhE7fPIZL8wjV5Fn7R4XBmhZxehKA5zDzrcyOIYbp8YdS6sAaw/exec?accion=panel', '_blank');
+      window.open(SCRIPT_URL + '?accion=panel', '_blank');
     } else if (seccion === 'reservas') {
-      window.open('https://script.google.com/macros/s/AKfycbxhC2x7_WXD47rdJDYjaRouvEd2Fz-ulhge0WwwSjShCP7L5DDVhnLiSW-w3TW0IaQWvA/exec', '_blank');
+      window.open(SCRIPT_AGENDA, '_blank');
     } else if (seccion === 'push') {
       cerrarAdmin();
       document.getElementById('push-panel').classList.add('activo');
+    } else if (seccion === 'encargados') {
+      cerrarAdmin();
+      document.getElementById('enc-panel').classList.add('activo');
+      cargarEncargados();
     }
   }
 
@@ -518,6 +567,100 @@
     document.getElementById('admin-panel').classList.add('activo');
   }
 
+  // ============================================================
+  // ENCARGADOS
+  // ============================================================
+  function cerrarEncargados() {
+    document.getElementById('enc-panel').classList.remove('activo');
+    document.getElementById('admin-panel').classList.add('activo');
+  }
+
+  function cargarEncargados() {
+    fetch(SCRIPT_URL + '?accion=listarEncargados')
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        var wrap = document.getElementById('enc-lista-wrap');
+        if (!d.ok || d.encargados.length === 0) {
+          wrap.innerHTML = '<p style="color:#aaa;text-align:center;font-size:13px">No hay encargados registrados</p>';
+          return;
+        }
+        var html = '<ul class="enc-lista">';
+        d.encargados.forEach(function(e) {
+          var esActivo = e.estado === 'Activo';
+          html += '<li class="enc-item">' +
+            '<h4>' + e.nombre + '</h4>' +
+            '<p>📱 ' + e.telefono + ' &nbsp;|&nbsp; 🕐 ' + e.entrada + ' – ' + e.salida + '</p>' +
+            '<div class="enc-btns">' +
+            '<button class="btn-toggle ' + (esActivo ? 'activo' : 'inactivo') + '" onclick="toggleEnc(\'' + e.telefono + '\')">' +
+            (esActivo ? '✅ Activo' : '⏸ Inactivo') + '</button>' +
+            '<button class="btn-del" onclick="borrarEnc(\'' + e.telefono + '\')">🗑 Borrar</button>' +
+            '</div></li>';
+        });
+        html += '</ul>';
+        wrap.innerHTML = html;
+      })
+      .catch(function() {
+        document.getElementById('enc-lista-wrap').innerHTML = '<p style="color:#EF9A9A;text-align:center;font-size:13px">Error cargando encargados</p>';
+      });
+  }
+
+  function agregarEncargado() {
+    var nombre  = document.getElementById('enc-nombre').value.trim();
+    var tel     = document.getElementById('enc-tel').value.trim();
+    var entrada = document.getElementById('enc-entrada').value.trim();
+    var salida  = document.getElementById('enc-salida').value.trim();
+    if (!nombre || !tel || !entrada || !salida) { alert('Completá todos los campos.'); return; }
+    var res = document.getElementById('enc-resultado');
+    res.style.display = 'none';
+    fetch(SCRIPT_URL + '?accion=agregarEncargado&nombre=' + encodeURIComponent(nombre) +
+      '&telefono=' + encodeURIComponent(tel) +
+      '&entrada=' + encodeURIComponent(entrada) +
+      '&salida=' + encodeURIComponent(salida))
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        res.style.display = 'block';
+        if (d.ok) {
+          res.className = 'enc-resultado enc-ok';
+          document.getElementById('enc-res-txt').textContent = '✅ Encargado agregado';
+          document.getElementById('enc-nombre').value = '';
+          document.getElementById('enc-tel').value = '';
+          document.getElementById('enc-entrada').value = '';
+          document.getElementById('enc-salida').value = '';
+          cargarEncargados();
+        } else {
+          res.className = 'enc-resultado enc-err';
+          document.getElementById('enc-res-txt').textContent = '❌ ' + (d.error || 'Error');
+        }
+      });
+  }
+
+  function borrarEnc(telefono) {
+    if (!confirm('¿Borrar este encargado?')) return;
+    fetch(SCRIPT_URL + '?accion=borrarEncargado&telefono=' + encodeURIComponent(telefono))
+      .then(function(r) { return r.json(); })
+      .then(function(d) { if (d.ok) cargarEncargados(); });
+  }
+
+  function toggleEnc(telefono) {
+    fetch(SCRIPT_URL + '?accion=toggleEncargado&telefono=' + encodeURIComponent(telefono))
+      .then(function(r) { return r.json(); })
+      .then(function(d) { if (d.ok) cargarEncargados(); });
+  }
+
+  function enviarResumen() {
+    if (!confirm('¿Enviar resumen del día a los encargados en turno ahora?')) return;
+    fetch(SCRIPT_AGENDA + '?accion=resumenEncargados')
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        if (d.ok) alert('✅ Resumen enviado a ' + d.enviados + ' encargado(s).');
+        else alert('❌ ' + (d.error || 'Error'));
+      })
+      .catch(function() { alert('❌ Error de conexión'); });
+  }
+
+  // ============================================================
+  // NOTIFICACIONES PUSH
+  // ============================================================
   function actualizarPreview() {
     const titulo = document.getElementById('push-titulo').value || 'Título de la notificación';
     const mensaje = document.getElementById('push-mensaje').value || 'Mensaje de la notificación...';
