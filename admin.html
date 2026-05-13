@@ -120,7 +120,11 @@
     .enc-item .btn-toggle { flex: 1; padding: 8px; border: none; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; }
     .enc-item .btn-toggle.activo { background: #1B5E20; color: #fff; }
     .enc-item .btn-toggle.inactivo { background: #555; color: #fff; }
+    .enc-item .btn-edit { padding: 8px 12px; background: #E65100; color: #fff; border: none; border-radius: 6px; font-size: 12px; cursor: pointer; }
     .enc-item .btn-del { padding: 8px 12px; background: #B71C1C; color: #fff; border: none; border-radius: 6px; font-size: 12px; cursor: pointer; }
+    .enc-edit-form { margin-top: 10px; }
+    .enc-edit-form input { width: 100%; padding: 10px; background: #222; border: 1px solid #555; border-radius: 6px; color: #fff; font-size: 13px; box-sizing: border-box; margin-bottom: 8px; }
+    .enc-edit-form button { width: 100%; padding: 10px; background: #9C27B0; color: #fff; border: none; border-radius: 6px; font-size: 13px; cursor: pointer; }
     .enc-resultado { background: #1a1a1a; border-radius: 8px; padding: 12px; margin-top: 10px; display: none; text-align: center; font-size: 13px; }
     .enc-ok { border: 1px solid #2E7D32; color: #81C784; }
     .enc-err { border: 1px solid #B71C1C; color: #EF9A9A; }
@@ -587,20 +591,53 @@
         var html = '<ul class="enc-lista">';
         d.encargados.forEach(function(e) {
           var esActivo = e.estado === 'Activo';
+          var tel = e.telefono;
           html += '<li class="enc-item">' +
             '<h4>' + e.nombre + '</h4>' +
-            '<p>📱 ' + e.telefono + ' &nbsp;|&nbsp; 🕐 ' + e.entrada + ' – ' + e.salida + '</p>' +
+            '<p>📱 ' + tel + ' &nbsp;|&nbsp; 🕐 ' + e.entrada + ' – ' + e.salida + '</p>' +
             '<div class="enc-btns">' +
-            '<button class="btn-toggle ' + (esActivo ? 'activo' : 'inactivo') + '" onclick="toggleEnc(\'' + e.telefono + '\')">' +
+            '<button class="btn-toggle ' + (esActivo ? 'activo' : 'inactivo') + '" onclick="toggleEnc(\'' + tel + '\')">' +
             (esActivo ? '✅ Activo' : '⏸ Inactivo') + '</button>' +
-            '<button class="btn-del" onclick="borrarEnc(\'' + e.telefono + '\')">🗑 Borrar</button>' +
-            '</div></li>';
+            '<button class="btn-edit" onclick="mostrarEditarEnc(\'' + tel + '\',\'' + e.entrada + '\',\'' + e.salida + '\')">✏️ Editar</button>' +
+            '<button class="btn-del" onclick="borrarEnc(\'' + tel + '\')">🗑 Borrar</button>' +
+            '</div>' +
+            '<div class="enc-edit-form" id="edit-' + tel + '" style="display:none">' +
+            '<input type="text" id="edit-entrada-' + tel + '" placeholder="Hora entrada Ej: 8:00 AM">' +
+            '<input type="text" id="edit-salida-' + tel + '" placeholder="Hora salida Ej: 6:00 PM">' +
+            '<button onclick="guardarEdicionEnc(\'' + tel + '\')">💾 Guardar cambios</button>' +
+            '</div>' +
+            '</li>';
         });
         html += '</ul>';
         wrap.innerHTML = html;
       })
       .catch(function() {
         document.getElementById('enc-lista-wrap').innerHTML = '<p style="color:#EF9A9A;text-align:center;font-size:13px">Error cargando encargados</p>';
+      });
+  }
+
+  function mostrarEditarEnc(telefono, entrada, salida) {
+    var form = document.getElementById('edit-' + telefono);
+    if (form.style.display === 'none') {
+      form.style.display = 'block';
+      document.getElementById('edit-entrada-' + telefono).value = entrada;
+      document.getElementById('edit-salida-' + telefono).value = salida;
+    } else {
+      form.style.display = 'none';
+    }
+  }
+
+  function guardarEdicionEnc(telefono) {
+    var entrada = document.getElementById('edit-entrada-' + telefono).value.trim();
+    var salida  = document.getElementById('edit-salida-' + telefono).value.trim();
+    if (!entrada || !salida) { alert('Completá entrada y salida.'); return; }
+    fetch(SCRIPT_URL + '?accion=editarEncargado&telefono=' + encodeURIComponent(telefono) +
+      '&entrada=' + encodeURIComponent(entrada) +
+      '&salida='  + encodeURIComponent(salida))
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        if (d.ok) { cargarEncargados(); }
+        else { alert('❌ ' + (d.error || 'Error')); }
       });
   }
 
