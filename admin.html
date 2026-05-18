@@ -686,7 +686,7 @@
 
   function enviarResumen() {
     if (!confirm('¿Enviar resumen del día a los encargados en turno ahora?')) return;
-    fetch(SCRIPT_AGENDA + '?accion=resumenEncargados')
+    fetch(SCRIPT_URL + '?accion=resumenEncargados')
       .then(function(r) { return r.json(); })
       .then(function(d) {
         if (d.ok) alert('✅ Resumen enviado a ' + d.enviados + ' encargado(s).');
