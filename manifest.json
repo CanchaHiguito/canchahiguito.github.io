@@ -1,6 +1,6 @@
 {
   "name": "Centro Deportivo Higuito",
-  "short_name": "Cancha Higuito",
+  "short_name": "C.Higuito",
   "description": "Sistema de puntos — Jugá 10 y ganás 1 gratis",
   "start_url": "/",
   "display": "standalone",
@@ -9,9 +9,9 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "/logo.jpeg",
+      "src": "/logo-admin.jpg",
       "sizes": "512x512",
-      "type": "image/jpeg",
+      "type": "image/jpg",
       "purpose": "any maskable"
     }
   ]
