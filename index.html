@@ -430,18 +430,16 @@
       const data = await resp.json();
       if (data.encontrado) {
         localStorage.setItem('higuito_cache_cliente', JSON.stringify(data));
-        const osId = localStorage.getItem('higuito_onesignal_id');
-        if (!osId) {
-          OneSignalDeferred.push(async function(OneSignal) {
-            const id = await OneSignal.User.PushSubscription.id;
-            if (id) {
+        OneSignalDeferred.push(async function(OneSignal) {
+          const id = await OneSignal.User.PushSubscription.id;
+          if (id) {
+            const idAnterior = localStorage.getItem('higuito_onesignal_id');
+            if (id !== idAnterior) {
               localStorage.setItem('higuito_onesignal_id', id);
               await guardarOneSignalId(telefono, id);
             }
-          });
-        } else {
-          await guardarOneSignalId(telefono, osId);
-        }
+          }
+        });
         mostrarCliente(data);
       } else {
         localStorage.removeItem('higuito_telefono');
