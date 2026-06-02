@@ -923,7 +923,7 @@ async function crearReserva() {
 
     var resp = await fetch(SCRIPT_AGENDA, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify(body)
     });
     var data = await resp.json();
