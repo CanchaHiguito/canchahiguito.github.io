@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Higuito Chat</title>
+<meta name="theme-color" content="#000000">
+<style>
+  /* ============================================================
+     HIGUITO CHAT — Fase 2
+     Identidad visual heredada de la PWA:
+     negro #000 · rojo #B71C1C · amarillo #F9A825 · verde #2E7D32
+     Arial · botones con radio 8px
+     ============================================================ */
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { height:100%; }
+  body {
+    font-family: Arial, sans-serif;
+    background:#000;
+    color:#fff;
+    display:flex;
+    flex-direction:column;
+    height:100vh;
+    height:100dvh;
+    overflow:hidden;
+  }
+
+  /* ---------- ENCABEZADO ---------- */
+  header {
+    background:#000;
+    border-bottom:3px solid #F9A825;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:10px 14px;
+    flex-shrink:0;
+  }
+  header img.logo {
+    width:42px; height:42px;
+    border-radius:50%;
+    object-fit:cover;
+  }
+  .titulos { flex:1; line-height:1.15; }
+  .titulos .mini   { color:#F9A825; font-size:10px; font-weight:bold; letter-spacing:2px; text-transform:uppercase; }
+  .titulos .grande { color:#B71C1C; font-size:20px; font-weight:900; letter-spacing:1px; }
+  .titulos .sub    { color:#fff; font-size:11px; }
+  .btn-puntos {
+    background:#1a1a1a;
+    color:#F9A825;
+    border:1px solid #F9A825;
+    border-radius:8px;
+    padding:8px 12px;
+    font-size:13px;
+    font-weight:bold;
+    cursor:pointer;
+  }
+
+  /* ---------- ÁREA DE CHAT ---------- */
+  #chat {
+    flex:1;
+    overflow-y:auto;
+    padding:14px 12px 8px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    -webkit-overflow-scrolling:touch;
+  }
+  .fila { display:flex; flex-direction:column; max-width:82%; }
+  .fila.cliente { align-self:flex-end;   align-items:flex-end; }
+  .fila.ia      { align-self:flex-start; align-items:flex-start; }
+  .burbuja {
+    padding:10px 12px;
+    border-radius:12px;
+    font-size:14.5px;
+    line-height:1.45;
+    word-wrap:break-word;
+  }
+  .cliente .burbuja {
+    background:#f5f5f5;
+    color:#111;
+    border-right:4px solid #B71C1C;
+    border-top-right-radius:4px;
+  }
+  .ia .burbuja {
+    background:#fff;
+    color:#111;
+    border-left:4px solid #F9A825;
+    border-top-left-radius:4px;
+  }
+  .hora { font-size:10px; color:#888; margin-top:3px; }
+  .sistema {
+    align-self:center;
+    color:#aaa;
+    font-size:12px;
+    font-style:italic;
+    text-align:center;
+    padding:4px 10px;
+  }
+
+  /* Indicador "escribiendo…" (tres puntos animados) */
+  .escribiendo { display:flex; gap:5px; padding:12px 14px; }
+  .punto {
+    width:7px; height:7px;
+    border-radius:50%;
+    background:#F9A825;
+    animation:salto 1s infinite;
+  }
+  .punto:nth-child(2){ animation-delay:.15s }
+  .punto:nth-child(3){ animation-delay:.3s }
+  @keyframes salto {
+    0%,60%,100% { transform:translateY(0);   opacity:.4 }
+    30%         { transform:translateY(-5px); opacity:1 }
+  }
+
+  /* ---------- BARRA DE ESCRITURA ---------- */
+  footer {
+    flex-shrink:0;
+    background:#1a1a1a;
+    display:flex;
+    gap:8px;
+    padding:10px 12px;
+    border-top:1px solid #333;
+  }
+  #caja {
+    flex:1;
+    background:#111;
+    color:#fff;
+    border:1px solid #333;
+    border-radius:8px;
+    padding:12px;
+    font-size:16px;
+    font-family:Arial, sans-serif;
+  }
+  #caja:focus { outline:none; border-color:#F9A825; }
+  #enviar {
+    background:#B71C1C;
+    color:#fff;
+    border:none;
+    border-radius:8px;
+    width:48px;
+    font-size:18px;
+    font-weight:bold;
+    cursor:pointer;
+  }
+  #enviar:disabled { opacity:.45; cursor:not-allowed; }
+
+  /* ---------- VENTANA DEL TELÉFONO (solo la primera vez) ---------- */
+  #modal {
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.92);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+    z-index:50;
+  }
+  .tarjeta {
+    background:#1a1a1a;
+    border:1px solid #333;
+    border-radius:14px;
+    padding:26px 20px;
+    width:100%;
+    max-width:340px;
+    text-align:center;
+  }
+  .tarjeta h2 { color:#F9A825; font-size:18px; margin-bottom:6px; }
+  .tarjeta p  { color:#aaa; font-size:13px; line-height:1.5; margin-bottom:16px; }
+  .campo-tel { display:flex; align-items:center; gap:6px; margin-bottom:6px; }
+  .prefijo {
+    background:#111;
+    border:1px solid #333;
+    border-radius:8px;
+    padding:12px 10px;
+    color:#F9A825;
+    font-weight:bold;
+    font-size:15px;
+  }
+  #tel {
+    flex:1;
+    background:#111;
+    border:1px solid #333;
+    border-radius:8px;
+    padding:12px;
+    color:#fff;
+    font-size:16px;
+    letter-spacing:1px;
+  }
+  #tel:focus { outline:none; border-color:#F9A825; }
+  .error-tel { color:#EF9A9A; font-size:12px; min-height:16px; margin-bottom:10px; }
+  #btnEmpezar {
+    width:100%;
+    background:#2E7D32;
+    color:#fff;
+    border:none;
+    border-radius:8px;
+    padding:14px;
+    font-size:16px;
+    font-weight:bold;
+    cursor:pointer;
+  }
+  .oculto { display:none !important; }
+</style>
+</head>
+<body>
+
+<header>
+  <img class="logo" src="logo.jpeg" alt="" onerror="this.style.display='none'">
+  <div class="titulos">
+    <div class="mini">Centro Deportivo</div>
+    <div class="grande">HIGUITO</div>
+    <div class="sub">Chat</div>
+  </div>
+  <button class="btn-puntos" id="btnPuntos" onclick="clickPuntos()">🔒 Puntos</button>
+</header>
+
+<div id="chat"></div>
+
+<footer>
+  <input id="caja" type="text" placeholder="Escribí tu mensaje…" autocomplete="off">
+  <button id="enviar" onclick="enviarMensaje()">➤</button>
+</footer>
+
+<!-- Ventana que pide el teléfono SOLO la primera vez -->
+<div id="modal" class="oculto">
+  <div class="tarjeta">
+    <h2>⚽ ¡Bienvenido!</h2>
+    <p>Para atenderte, decinos tu número de teléfono.<br>Solo te lo pedimos <b>una vez</b>.</p>
+    <div class="campo-tel">
+      <span class="prefijo">+506</span>
+      <input id="tel" type="tel" inputmode="numeric" maxlength="8" placeholder="88888888">
+    </div>
+    <div class="error-tel" id="errorTel"></div>
+    <button id="btnEmpezar" onclick="guardarTelefono()">Empezar a chatear</button>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// HIGUITO CHAT — Fase 2
+// Regla del proyecto (Registro de Errores #5):
+// todo POST desde el navegador hacia Apps Script va con
+// Content-Type text/plain para evitar el bloqueo CORS.
+// ============================================================
+var SCRIPT_AGENDA = "https://script.google.com/macros/s/AKfycbwdER_EyJ25wDnX7R2X2flZEQnRGRDCnsd2z_p-G1rh39bJxKIUJjmsQIC29HbO_WtteQ/exec";
+var LS_KEY = "higuito_chat_telefono";
+
+var telefono   = localStorage.getItem(LS_KEY) || "";
+var registrado = false;
+var enviando   = false;
+
+// ---------- ARRANQUE ----------
+window.addEventListener("load", function(){
+  if (telefono) {
+    iniciarConversacion();
+  } else {
+    document.getElementById("modal").classList.remove("oculto");
+    document.getElementById("tel").focus();
+  }
+});
+
+function guardarTelefono(){
+  var num = document.getElementById("tel").value.trim();
+  var err = document.getElementById("errorTel");
+  if (!/^[2-8]\d{7}$/.test(num)) {
+    err.textContent = "Escribí los 8 dígitos de tu número, sin espacios.";
+    return;
+  }
+  telefono = "506" + num; // formato del proyecto: 506 sin el signo +
+  localStorage.setItem(LS_KEY, telefono);
+  document.getElementById("modal").classList.add("oculto");
+  iniciarConversacion();
+}
+
+// Permite dar Enter dentro del campo del teléfono
+document.getElementById("tel").addEventListener("keydown", function(e){
+  if (e.key === "Enter") { e.preventDefault(); guardarTelefono(); }
+});
+
+function iniciarConversacion(){
+  // Mensaje especial de apertura: el cerebro responde con el saludo
+  enviarAlServidor("__inicio__", false);
+}
+
+// ---------- ENVÍO DE MENSAJES ----------
+function enviarMensaje(){
+  var caja  = document.getElementById("caja");
+  var texto = caja.value.trim();
+  if (!texto || enviando) return;
+  caja.value = "";
+  enviarAlServidor(texto, true);
+}
+
+document.getElementById("caja").addEventListener("keydown", function(e){
+  if (e.key === "Enter") { e.preventDefault(); enviarMensaje(); }
+});
+
+function enviarAlServidor(mensaje, mostrarBurbuja){
+  if (enviando) return;
+  enviando = true;
+  document.getElementById("enviar").disabled = true;
+
+  if (mostrarBurbuja) agregarBurbuja("cliente", mensaje);
+  mostrarEscribiendo();
+
+  fetch(SCRIPT_AGENDA, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ action: "chat", telefono: telefono, mensaje: mensaje })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(data){
+    quitarEscribiendo();
+    var r = data && data.result_chat;
+    if (r && r.ok) {
+      registrado = !!r.registrado;
+      actualizarBotonPuntos();
+      agregarBurbuja("ia", r.respuesta || "…");
+    } else {
+      agregarSistema("⚠️ Hubo un problema procesando tu mensaje. Intentá de nuevo.");
+    }
+    terminarEnvio();
+  })
+  .catch(function(){
+    quitarEscribiendo();
+    agregarSistema("⚠️ Sin conexión. Verificá tu internet e intentá de nuevo.");
+    terminarEnvio();
+  });
+}
+
+function terminarEnvio(){
+  enviando = false;
+  document.getElementById("enviar").disabled = false;
+}
+
+// ---------- BURBUJAS Y PANTALLA ----------
+function agregarBurbuja(tipo, texto){
+  var chat = document.getElementById("chat");
+  var fila = document.createElement("div");
+  fila.className = "fila " + tipo;
+
+  var b = document.createElement("div");
+  b.className = "burbuja";
+  b.innerHTML = formatear(texto);
+
+  var h = document.createElement("div");
+  h.className = "hora";
+  h.textContent = horaAhora();
+
+  fila.appendChild(b);
+  fila.appendChild(h);
+  chat.appendChild(fila);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function agregarSistema(texto){
+  var chat = document.getElementById("chat");
+  var d = document.createElement("div");
+  d.className = "sistema";
+  d.textContent = texto;
+  chat.appendChild(d);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function mostrarEscribiendo(){
+  quitarEscribiendo();
+  var chat = document.getElementById("chat");
+  var fila = document.createElement("div");
+  fila.className = "fila ia";
+  fila.id = "escribiendo";
+  fila.innerHTML = '<div class="burbuja escribiendo"><div class="punto"></div><div class="punto"></div><div class="punto"></div></div>';
+  chat.appendChild(fila);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function quitarEscribiendo(){
+  var e = document.getElementById("escribiendo");
+  if (e) e.remove();
+}
+
+// Convierte el texto del bot a HTML seguro:
+// 1) escapa caracteres peligrosos, 2) *negrita* estilo WhatsApp,
+// 3) saltos de línea. Regex con flag "u" (regla del Registro #3).
+function formatear(t){
+  var s = (t || "").toString()
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+  s = s.replace(/\*([^*\n]+)\*/gu, "<strong>$1</strong>");
+  s = s.replace(/\n/g, "<br>");
+  return s;
+}
+
+// Hora en formato del proyecto: h:mm a en minúsculas (ej: 3:05 pm)
+function horaAhora(){
+  var d = new Date();
+  var h = d.getHours();
+  var m = ("0" + d.getMinutes()).slice(-2);
+  var ap = h >= 12 ? "pm" : "am";
+  h = h % 12;
+  if (h === 0) h = 12;
+  return h + ":" + m + " " + ap;
+}
+
+// ---------- BOTÓN PUNTOS ----------
+function actualizarBotonPuntos(){
+  document.getElementById("btnPuntos").textContent = registrado ? "⭐ Puntos" : "🔒 Puntos";
+}
+
+function clickPuntos(){
+  if (registrado) {
+    // Cliente registrado: abre la pantalla de puntos actual de la PWA
+    window.location.href = "index.html";
+  } else {
+    // Cliente sin registrar: el cerebro re-invita a la comunidad
+    if (!enviando) enviarAlServidor("__puntos__", false);
+  }
+}
+
+// ============================================================
+// NOTA FASE 3 (no borrar):
+// aquí se agregará la consulta periódica de mensajes nuevos
+// para recibir respuestas del administrador cuando exista
+// el panel de bandeja de entrada.
+// ============================================================
+</script>
+</body>
+</html>
