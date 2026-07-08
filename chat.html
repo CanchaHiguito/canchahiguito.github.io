@@ -262,7 +262,7 @@ window.addEventListener("load", function(){
 function guardarTelefono(){
   var num = document.getElementById("tel").value.trim();
   var err = document.getElementById("errorTel");
-  if (!/^[2-8]\d{7}$/.test(num)) {
+  if (!/^\d{8}$/.test(num)) {
     err.textContent = "Escribí los 8 dígitos de tu número, sin espacios.";
     return;
   }
