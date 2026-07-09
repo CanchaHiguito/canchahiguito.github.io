@@ -146,6 +146,46 @@
 .res-resultado { background: #1a1a1a; border-radius: 8px; padding: 12px; margin-top: 10px; display: none; text-align: center; font-size: 13px; }
 .res-ok { border: 1px solid #2E7D32; color: #81C784; }
 .res-err { border: 1px solid #B71C1C; color: #EF9A9A; }
+  
+    /* ============ FASE 3A.5: Bandeja de mensajes ============ */
+    .msj-panel { position: fixed; top:0; left:0; right:0; bottom:0; background:#111; display:none; flex-direction:column; z-index:100; overflow-y:auto; }
+    .msj-panel.activo { display:flex; }
+    .msj-header { background:#000; padding:16px 20px; border-bottom:3px solid #F9A825; display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+    .msj-header h2 { color:#F9A825; font-size:18px; }
+    .msj-body { padding:12px; flex:1; width:100%; max-width:720px; margin:0 auto; }
+    .msj-item { background:#1a1a1a; border:1px solid #333; border-radius:8px; padding:12px 14px; margin-bottom:8px; cursor:pointer; }
+    .msj-item:hover { background:#222; }
+    .msj-item-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; gap:8px; }
+    .msj-nombre { color:#fff; font-weight:bold; font-size:15px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .msj-hora { color:#888; font-size:12px; flex-shrink:0; }
+    .msj-item-bottom { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+    .msj-ultimo { color:#aaa; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; }
+    .msj-badge { background:#B71C1C; color:#fff; border-radius:999px; min-width:20px; height:20px; display:inline-flex; align-items:center; justify-content:center; font-size:12px; font-weight:bold; padding:0 6px; flex-shrink:0; }
+    .msj-vacio { color:#888; text-align:center; padding:30px 10px; font-size:14px; }
+    .msj-menu-badge { background:#B71C1C; color:#fff; border-radius:999px; min-width:20px; height:20px; display:none; align-items:center; justify-content:center; font-size:12px; font-weight:bold; padding:0 6px; margin-left:8px; vertical-align:middle; }
+    .conv-panel { position:fixed; top:0; left:0; right:0; bottom:0; background:#111; display:none; flex-direction:column; z-index:110; }
+    .conv-panel.activo { display:flex; }
+    .conv-header { background:#000; padding:14px 16px; border-bottom:3px solid #F9A825; display:flex; align-items:center; gap:12px; flex-shrink:0; }
+    .conv-volver { background:none; border:1px solid #555; color:#ddd; border-radius:6px; padding:6px 12px; font-size:14px; cursor:pointer; flex-shrink:0; }
+    .conv-titulo { color:#fff; font-weight:bold; font-size:16px; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .conv-mensajes { flex:1; overflow-y:auto; padding:14px; width:100%; max-width:720px; margin:0 auto; }
+    .conv-fila { display:flex; flex-direction:column; margin-bottom:10px; align-items:flex-start; }
+    .conv-fila.admin { align-items:flex-end; }
+    .conv-quien { color:#888; font-size:11px; margin-bottom:2px; }
+    .conv-burbuja { max-width:85%; padding:10px 12px; border-radius:8px; font-size:14px; line-height:1.45; word-wrap:break-word; }
+    .conv-fila.cliente .conv-burbuja { background:#fff; color:#111; border-left:4px solid #2E7D32; }
+    .conv-fila.ia .conv-burbuja { background:#f4f4f4; color:#111; border-left:4px solid #F9A825; }
+    .conv-fila.admin .conv-burbuja { background:#B71C1C; color:#fff; border-right:4px solid #F9A825; }
+    .conv-hora { color:#777; font-size:11px; margin-top:2px; }
+    .conv-push { font-size:12px; text-align:center; padding:4px 8px 0; width:100%; max-width:720px; margin:0 auto; min-height:18px; }
+    .conv-push.ok { color:#66BB6A; }
+    .conv-push.warn { color:#F9A825; }
+    .conv-pie { padding:10px 12px 14px; background:#000; border-top:1px solid #333; flex-shrink:0; }
+    .conv-pie-inner { display:flex; gap:8px; width:100%; max-width:720px; margin:0 auto; }
+    .conv-caja { flex:1; background:#1a1a1a; border:1px solid #444; border-radius:8px; color:#fff; padding:12px; font-size:15px; font-family:Arial,sans-serif; resize:none; }
+    .conv-enviar { background:#B71C1C; border:none; color:#fff; border-radius:8px; padding:0 18px; font-size:18px; cursor:pointer; }
+    .conv-enviar:disabled { opacity:.5; }
+  
   </style>
 </head>
 <body>
@@ -190,9 +230,9 @@
       <button class="btn-cerrar-admin" onclick="cerrarAdmin()">✕ Cerrar</button>
     </div>
     <div class="admin-menu">
-      <button class="admin-btn campanas" onclick="abrirSeccion('campanas')">
-        <div class="icono">📤</div>
-        <div class="info"><h3>Campañas WhatsApp</h3><p>Enviar mensajes masivos por grupos de edad</p></div>
+      <button class="admin-btn mensajes" onclick="abrirMensajes()">
+        <div class="icono">💬</div>
+        <div class="info"><h3>Mensajes <span class="msj-menu-badge" id="msj-menu-badge"></span></h3><p>Bandeja de conversaciones del Higuito Chat</p></div>
       </button>
       <button class="admin-btn reservas" onclick="abrirSeccion('reservas')">
         <div class="icono">📅</div>
@@ -206,6 +246,29 @@
         <div class="icono">👥</div>
         <div class="info"><h3>Encargados</h3><p>Gestionar turnos y notificaciones</p></div>
       </button>
+    </div>
+  </div>
+
+  <div class="msj-panel" id="msj-panel">
+    <div class="msj-header">
+      <h2>💬 Mensajes</h2>
+      <button class="btn-cerrar-admin" onclick="cerrarMensajes()">✕ Cerrar</button>
+    </div>
+    <div class="msj-body" id="msj-lista"><div class="msj-vacio">Cargando…</div></div>
+  </div>
+
+  <div class="conv-panel" id="conv-panel">
+    <div class="conv-header">
+      <button class="conv-volver" onclick="cerrarConversacion()">← Volver</button>
+      <div class="conv-titulo" id="conv-nombre">Conversación</div>
+    </div>
+    <div class="conv-mensajes" id="conv-mensajes"></div>
+    <div class="conv-push" id="conv-push-estado"></div>
+    <div class="conv-pie">
+      <div class="conv-pie-inner">
+        <textarea class="conv-caja" id="conv-caja" rows="1" placeholder="Escribí tu mensaje…" onkeydown="convTecla(event)"></textarea>
+        <button class="conv-enviar" id="conv-enviar" onclick="enviarMensajeAdminUI()">➤</button>
+      </div>
     </div>
   </div>
 
@@ -287,7 +350,6 @@
       <button class="btn-cerrar-admin" onclick="cerrarEncargados()">✕ Cerrar</button>
     </div>
     <div class="enc-body">
-      <button class="btn-resumen" onclick="enviarResumen()">📋 Enviar resumen del día a encargados en turno</button>
       <div class="enc-card">
         <label>Nombre</label>
         <input type="text" id="enc-nombre" placeholder="Ej: Carlos">
@@ -300,6 +362,7 @@
         <button class="btn-agregar" onclick="agregarEncargado()">➕ Agregar encargado</button>
         <div class="enc-resultado" id="enc-resultado"><p id="enc-res-txt"></p></div>
       </div>
+      <button class="btn-resumen" onclick="enviarResumen()">📋 Enviar resumen del día a encargados en turno</button>
       <div id="enc-lista-wrap">
         <p style="color:#aaa;text-align:center;font-size:13px">Cargando...</p>
       </div>
@@ -972,6 +1035,202 @@ async function enviarWACliente(telefono, nombre, fecha, hora) {
     console.log('Error enviando WA:', e);
   }
 }
+  // ============================================================
+  // FASE 3A.5 — Bandeja de mensajes del Higuito Chat
+  // ============================================================
+  var bandejaTimer = null;
+  var convTimer = null;
+  var convTelefonoActual = null;
+  var convUltimoCount = 0;
+  var bandejaConversaciones = [];
+
+  function apiChat(payload, cb) {
+    fetch(SCRIPT_AGENDA, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(data){ cb(data); })
+    .catch(function(){ cb(null); });
+  }
+
+  function escaparHTML(t) {
+    return (t === null || t === undefined ? '' : t.toString())
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function formatearMsj(t) {
+    var s = escaparHTML(t);
+    s = s.replace(/\*([^*\n]+)\*/g, '<strong>$1</strong>');
+    return s.replace(/\n/g, '<br>');
+  }
+
+  function horaBandeja(f) {
+    try {
+      var partes = (f || '').split(' ');
+      if (partes.length < 2) return '';
+      var fecha = partes[0];
+      var hm = partes[1].split(':');
+      var hoy = new Date();
+      var hoyStr = hoy.getFullYear() + '-' + ('0' + (hoy.getMonth() + 1)).slice(-2) + '-' + ('0' + hoy.getDate()).slice(-2);
+      if (fecha !== hoyStr) {
+        var p = fecha.split('-');
+        var meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+        return parseInt(p[2], 10) + ' ' + meses[parseInt(p[1], 10) - 1];
+      }
+      var h = parseInt(hm[0], 10);
+      var m = ('0' + parseInt(hm[1], 10)).slice(-2);
+      var ap = h >= 12 ? 'pm' : 'am';
+      h = h % 12; if (h === 0) h = 12;
+      return h + ':' + m + ' ' + ap;
+    } catch (e) { return ''; }
+  }
+
+  function prefijoEmisor(e) {
+    if (e === 'admin') return 'Vos: ';
+    if (e === 'ia') return 'IA: ';
+    return '';
+  }
+
+  function actualizarBadgeMenu() {
+    apiChat({ action: 'chat', subaction: 'listar', pin: PIN_ADMIN }, function(data){
+      var b = document.getElementById('msj-menu-badge');
+      if (!b) return;
+      var tot = 0;
+      if (data && data.conversaciones) {
+        for (var i = 0; i < data.conversaciones.length; i++) tot += (data.conversaciones[i].noLeidos || 0);
+      }
+      if (tot > 0) { b.textContent = tot; b.style.display = 'inline-flex'; }
+      else { b.style.display = 'none'; }
+    });
+  }
+  window.addEventListener('load', actualizarBadgeMenu);
+
+  function abrirMensajes() {
+    cerrarAdmin();
+    document.getElementById('msj-panel').classList.add('activo');
+    cargarBandeja();
+    if (bandejaTimer) clearInterval(bandejaTimer);
+    bandejaTimer = setInterval(cargarBandeja, 15000);
+  }
+
+  function cerrarMensajes() {
+    document.getElementById('msj-panel').classList.remove('activo');
+    document.getElementById('admin-panel').classList.add('activo');
+    if (bandejaTimer) { clearInterval(bandejaTimer); bandejaTimer = null; }
+    actualizarBadgeMenu();
+  }
+
+  function cargarBandeja() {
+    apiChat({ action: 'chat', subaction: 'listar', pin: PIN_ADMIN }, function(data){
+      var cont = document.getElementById('msj-lista');
+      if (!data || !data.conversaciones) {
+        cont.innerHTML = '<div class="msj-vacio">\u26A0\uFE0F No se pudo cargar. Reintentando\u2026</div>';
+        return;
+      }
+      bandejaConversaciones = data.conversaciones;
+      if (data.conversaciones.length === 0) {
+        cont.innerHTML = '<div class="msj-vacio">Sin conversaciones todav\u00eda.</div>';
+        return;
+      }
+      var html = '';
+      for (var i = 0; i < data.conversaciones.length; i++) {
+        var c = data.conversaciones[i];
+        var nombre = c.nombre || c.telefono;
+        var badge = (c.noLeidos > 0) ? '<span class="msj-badge">' + c.noLeidos + '</span>' : '';
+        html += '<div class="msj-item" onclick="abrirConversacionIdx(' + i + ')">'
+             +  '<div class="msj-item-top"><span class="msj-nombre">' + escaparHTML(nombre) + '</span><span class="msj-hora">' + horaBandeja(c.fechaHora) + '</span></div>'
+             +  '<div class="msj-item-bottom"><span class="msj-ultimo">' + escaparHTML(prefijoEmisor(c.emisorUltimo) + c.ultimoMensaje) + '</span>' + badge + '</div>'
+             +  '</div>';
+      }
+      cont.innerHTML = html;
+    });
+  }
+
+  function abrirConversacionIdx(i) {
+    var c = bandejaConversaciones[i];
+    if (!c) return;
+    convTelefonoActual = c.telefono;
+    convUltimoCount = 0;
+    document.getElementById('msj-panel').classList.remove('activo');
+    document.getElementById('conv-panel').classList.add('activo');
+    document.getElementById('conv-nombre').textContent = (c.nombre || c.telefono);
+    document.getElementById('conv-mensajes').innerHTML = '<div class="msj-vacio">Cargando\u2026</div>';
+    cargarConversacion(true);
+    apiChat({ action: 'chat', subaction: 'marcar', pin: PIN_ADMIN, telefono: c.telefono }, function(){});
+    if (convTimer) clearInterval(convTimer);
+    convTimer = setInterval(function(){ cargarConversacion(false); }, 5000);
+  }
+
+  function cerrarConversacion() {
+    document.getElementById('conv-panel').classList.remove('activo');
+    document.getElementById('msj-panel').classList.add('activo');
+    if (convTimer) { clearInterval(convTimer); convTimer = null; }
+    convTelefonoActual = null;
+    cargarBandeja();
+  }
+
+  function cargarConversacion(forzar) {
+    if (!convTelefonoActual) return;
+    var tel = convTelefonoActual;
+    apiChat({ action: 'chat', subaction: 'obtener', pin: PIN_ADMIN, telefono: tel }, function(data){
+      if (!data || !data.mensajes || convTelefonoActual !== tel) return;
+      if (data.mensajes.length === convUltimoCount && !forzar) return;
+      var llegaronNuevos = (data.mensajes.length > convUltimoCount && convUltimoCount > 0);
+      convUltimoCount = data.mensajes.length;
+      var cont = document.getElementById('conv-mensajes');
+      var html = '';
+      for (var i = 0; i < data.mensajes.length; i++) {
+        var m = data.mensajes[i];
+        var lado = (m.emisor === 'admin') ? 'admin' : ((m.emisor === 'cliente') ? 'cliente' : 'ia');
+        var quien = (lado === 'ia') ? '<div class="conv-quien">\uD83E\uDD16 IA</div>' : '';
+        html += '<div class="conv-fila ' + lado + '">' + quien
+             +  '<div class="conv-burbuja">' + formatearMsj(m.mensaje) + '</div>'
+             +  '<div class="conv-hora">' + horaBandeja(m.fechaHora) + '</div></div>';
+      }
+      cont.innerHTML = html;
+      cont.scrollTop = cont.scrollHeight;
+      if (llegaronNuevos) {
+        apiChat({ action: 'chat', subaction: 'marcar', pin: PIN_ADMIN, telefono: tel }, function(){});
+      }
+    });
+  }
+
+  function convTecla(ev) {
+    if (ev.key === 'Enter' && !ev.shiftKey) {
+      ev.preventDefault();
+      enviarMensajeAdminUI();
+    }
+  }
+
+  function enviarMensajeAdminUI() {
+    var caja = document.getElementById('conv-caja');
+    var texto = caja.value.trim();
+    if (!texto || !convTelefonoActual) return;
+    caja.value = '';
+    var btn = document.getElementById('conv-enviar');
+    btn.disabled = true;
+    apiChat({ action: 'chat', subaction: 'enviaradmin', pin: PIN_ADMIN, telefono: convTelefonoActual, mensaje: texto }, function(data){
+      btn.disabled = false;
+      var est = document.getElementById('conv-push-estado');
+      if (data && data.ok) {
+        cargarConversacion(true);
+        if (data.pushEnviado) {
+          est.textContent = '\uD83D\uDD14 Notificaci\u00f3n enviada al celular del cliente';
+          est.className = 'conv-push ok';
+        } else {
+          est.textContent = '\uD83D\uDCAC Guardado. El cliente lo ver\u00e1 al abrir el chat (sin notificaci\u00f3n: ' + (data.pushDetalle || '') + ')';
+          est.className = 'conv-push warn';
+        }
+        setTimeout(function(){ est.textContent = ''; est.className = 'conv-push'; }, 7000);
+      } else {
+        est.textContent = '\u26A0\uFE0F No se pudo enviar. Intent\u00e1 de nuevo.';
+        est.className = 'conv-push warn';
+      }
+    });
+  }
+
 </script>
 </body>
 </html>
