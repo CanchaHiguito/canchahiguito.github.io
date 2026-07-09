@@ -277,9 +277,64 @@ document.getElementById("tel").addEventListener("keydown", function(e){
   if (e.key === "Enter") { e.preventDefault(); guardarTelefono(); }
 });
 
-function iniciarConversacion(){
-  // Mensaje especial de apertura: el cerebro responde con el saludo
-  enviarAlServidor("__inicio__", false);
+// Fase 3A.4 — cargar historial del cliente al abrir
+        function horaDeString(s){
+          try {
+            var partes = (s || "").toString().split(" ");
+            if (partes.length < 2) return horaAhora();
+            var hm = partes[1].split(":");
+            var h = parseInt(hm[0], 10);
+            var m = ("0" + parseInt(hm[1], 10)).slice(-2);
+            var ap = h >= 12 ? "pm" : "am";
+            h = h % 12; if (h === 0) h = 12;
+            return h + ":" + m + " " + ap;
+          } catch(e){ return horaAhora(); }
+        }
+
+        function agregarBurbujaHistorico(tipo, texto, fechaHora){
+          var chat = document.getElementById("chat");
+          var fila = document.createElement("div");
+          fila.className = "fila " + tipo;
+          var b = document.createElement("div");
+          b.className = "burbuja";
+          b.innerHTML = formatear(texto);
+          var h = document.createElement("div");
+          h.className = "hora";
+          h.textContent = horaDeString(fechaHora);
+          fila.appendChild(b);
+          fila.appendChild(h);
+          chat.appendChild(fila);
+          chat.scrollTop = chat.scrollHeight;
+        }
+
+        function cargarHistorialCliente(callback){
+          if (!telefono) { callback(false); return; }
+          fetch(SCRIPT_AGENDA, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify({ action: "chat", subaction: "historial", telefono: telefono })
+          })
+          .then(function(r){ return r.json(); })
+          .then(function(data){
+            if (data && data.mensajes && data.mensajes.length > 0){
+              for (var i = 0; i < data.mensajes.length; i++){
+                var msj = data.mensajes[i];
+                var tipo = (msj.emisor === "cliente") ? "cliente" : "ia";
+                agregarBurbujaHistorico(tipo, msj.mensaje, msj.fechaHora);
+              }
+              callback(true);
+            } else {
+              callback(false);
+            }
+          })
+          .catch(function(){ callback(false); });
+        }
+  function iniciarConversacion(){
+ cargarHistorialCliente(function(huboHistorial){
+        if (!huboHistorial) {
+          enviarAlServidor("__inicio__", false);
+        }
+      });
 }
 
 // ---------- ENVÍO DE MENSAJES ----------
