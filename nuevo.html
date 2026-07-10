@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Higuito — Vista previa 3A.8.1</title>
+<title>Higuito Chat</title>
 <meta name="theme-color" content="#000000">
 <style>
   /* ============================================================
@@ -18,20 +18,6 @@
     background:#000; color:#fff;
     display:flex; flex-direction:column;
     height:100vh; height:100dvh;
-  }
-
-  /* Banda superior de demo (SOLO en esta tarea) */
-  .demo-bar {
-    background:#F9A825; color:#000;
-    padding:6px 12px; font-size:12px; font-weight:bold;
-    display:flex; align-items:center; gap:10px;
-    flex-shrink:0; z-index:200;
-  }
-  .demo-bar span { flex:1; }
-  .demo-bar button {
-    background:#000; color:#F9A825; border:1px solid #000;
-    padding:5px 12px; border-radius:6px; font-size:12px;
-    font-weight:bold; cursor:pointer;
   }
 
   /* ========== FILA SUPERIOR (siempre visible) ========== */
@@ -276,14 +262,14 @@
   @media (max-width: 767px) {
     body.modo-cliente .fila { max-width:85%; }
   }
+
+  @keyframes salto {
+    0%,60%,100% { transform:translateY(0);   opacity:.4 }
+    30%         { transform:translateY(-5px); opacity:1 }
+  }
 </style>
 </head>
 <body class="modo-cliente">
-
-  <div class="demo-bar">
-    <span>🎨 Vista previa 3A.8.1 · Sin funcionalidad real, solo diseño</span>
-    <button onclick="toggleModoDemo()">Cambiar modo</button>
-  </div>
 
   <header class="app-header">
     <div class="logo">
@@ -304,29 +290,7 @@
 
     <!-- ============ VISTA CLIENTE ============ -->
     <div class="vista-cliente">
-      <div class="cliente-chat">
-
-        <div class="fila ia">
-          <div class="burbuja">¡Hola! Bienvenido a <b>Centro Deportivo Higuito</b> ⚽ Soy el asistente virtual y puedo ayudarte con reservas, horarios y precios.</div>
-          <div class="hora">🤖 IA · 3:15 pm</div>
-        </div>
-
-        <div class="fila cliente">
-          <div class="burbuja">¿Tienen la cancha disponible el viernes a las 7pm?</div>
-          <div class="hora">3:16 pm</div>
-        </div>
-
-        <div class="fila admin">
-          <div class="burbuja">¡Hola! Sí tenemos ese horario libre. ¿Te la reservo?</div>
-          <div class="hora">Higuito · 3:17 pm</div>
-        </div>
-
-        <div class="fila cliente">
-          <div class="burbuja">¡Sí porfa! Gracias 🙌</div>
-          <div class="hora">3:17 pm</div>
-        </div>
-
-      </div>
+      <div class="cliente-chat"></div>
       <div class="cliente-input">
         <input type="text" placeholder="Escribí tu mensaje…">
         <button>➤</button>
@@ -424,41 +388,327 @@
 
   </div>
 
-<script>
-  // ============================================================
-  // 3A.8.1 — Solo demo visual, sin lógica funcional
-  // ============================================================
-  function toggleModoDemo(){
-    var b = document.body;
-    if (b.classList.contains('modo-cliente')) {
-      b.classList.remove('modo-cliente');
-      b.classList.add('modo-admin');
-    } else {
-      b.classList.remove('modo-admin');
-      b.classList.remove('movil-lista');
-      b.classList.remove('movil-conversacion');
-      b.classList.add('modo-cliente');
-    }
-  }
+  <div id="modal-telefono" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.92); align-items:center; justify-content:center; padding:20px; z-index:300;">
+    <div style="background:#1a1a1a; border:1px solid #333; border-radius:14px; padding:26px 20px; width:100%; max-width:340px; text-align:center;">
+      <h2 style="color:#F9A825; font-size:18px; margin-bottom:6px;">⚽ ¡Bienvenido!</h2>
+      <p style="color:#aaa; font-size:13px; line-height:1.5; margin-bottom:16px;">Para atenderte, decinos tu número de teléfono.<br>Solo te lo pedimos <b>una vez</b>.</p>
+      <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;">
+        <span style="background:#111; border:1px solid #333; border-radius:8px; padding:12px 10px; color:#F9A825; font-weight:bold; font-size:15px;">+506</span>
+        <input id="input-tel" type="tel" inputmode="numeric" maxlength="8" placeholder="88888888"
+               style="flex:1; background:#111; border:1px solid #333; border-radius:8px; padding:12px; color:#fff; font-size:16px; letter-spacing:1px;">
+      </div>
+      <div id="err-tel" style="color:#EF9A9A; font-size:12px; min-height:16px; margin-bottom:10px;"></div>
+      <button onclick="guardarTelefono()" style="width:100%; background:#2E7D32; color:#fff; border:none; border-radius:8px; padding:14px; font-size:16px; font-weight:bold; cursor:pointer;">Empezar a chatear</button>
+    </div>
+  </div>
 
-  // En celular: al tocar el icono de mensajes se muestra la lista;
-  // al tocar un cliente se abre la conversación.
-  document.querySelectorAll('.adm-sidebar .icono').forEach(function(el){
-    el.addEventListener('click', function(){
-      document.body.classList.add('movil-lista');
-      document.body.classList.remove('movil-conversacion');
-    });
-  });
-  document.querySelectorAll('.adm-lista .item').forEach(function(el){
-    el.addEventListener('click', function(){
-      document.body.classList.remove('movil-lista');
-      document.body.classList.add('movil-conversacion');
-    });
-  });
-  function volverALista(){
-    document.body.classList.remove('movil-conversacion');
-    document.body.classList.add('movil-lista');
+<script>
+// ============================================================
+// FASE 3A.8.2 — Wireup del MODO CLIENTE
+// Migracion de chat.html a la nueva estructura unificada.
+// Preserva: telefono, historial 15 dias, saludo automatico solo
+// si no hay historial, envio, refresco en vivo cada 8 seg
+// pausado por Page Visibility API, burbujas nuevas.
+// ============================================================
+
+var SCRIPT_AGENDA = "https://script.google.com/macros/s/AKfycbwdER_EyJ25wDnX7R2X2flZEQnRGRDCnsd2z_p-G1rh39bJxKIUJjmsQIC29HbO_WtteQ/exec";
+var LS_KEY = "higuito_chat_telefono";
+var INTERVALO_POLLING_MS = 8000;
+
+var telefono = localStorage.getItem(LS_KEY) || "";
+var registrado = false;
+var enviando = false;
+var ultimoConteoMensajes = 0;
+var pollingChatTimer = null;
+
+// ---------- ARRANQUE ----------
+window.addEventListener("load", function(){
+  if (telefono) {
+    iniciarConversacion();
+  } else {
+    document.getElementById("modal-telefono").style.display = "flex";
+    document.getElementById("input-tel").focus();
   }
+});
+
+function guardarTelefono(){
+  var num = document.getElementById("input-tel").value.trim();
+  var err = document.getElementById("err-tel");
+  if (!/^\d{8}$/.test(num)) {
+    err.textContent = "Escribí los 8 dígitos, sin espacios.";
+    return;
+  }
+  telefono = "506" + num;
+  localStorage.setItem(LS_KEY, telefono);
+  document.getElementById("modal-telefono").style.display = "none";
+  iniciarConversacion();
+}
+
+document.getElementById("input-tel").addEventListener("keydown", function(e){
+  if (e.key === "Enter") { e.preventDefault(); guardarTelefono(); }
+});
+
+// ---------- INICIO DE CONVERSACION ----------
+function iniciarConversacion(){
+  cargarHistorialCliente(function(huboHistorial){
+    if (!huboHistorial) {
+      ultimoConteoMensajes = 0;
+      enviarAlServidor("__inicio__", false);
+      iniciarPollingChat();
+    }
+  });
+}
+
+function cargarHistorialCliente(callback){
+  if (!telefono) { callback(false); return; }
+  fetch(SCRIPT_AGENDA, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ action: "chat", subaction: "historial", telefono: telefono })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(data){
+    if (data && data.mensajes && data.mensajes.length > 0){
+      for (var i = 0; i < data.mensajes.length; i++){
+        var msj = data.mensajes[i];
+        var tipo = (msj.emisor === "cliente") ? "cliente" : ((msj.emisor === "admin") ? "admin" : "ia");
+        agregarBurbujaHistorico(tipo, msj.mensaje, msj.fechaHora, msj.emisor);
+      }
+      ultimoConteoMensajes = data.mensajes.length;
+      iniciarPollingChat();
+      callback(true);
+    } else {
+      callback(false);
+    }
+  })
+  .catch(function(){ callback(false); });
+}
+
+// ---------- ENVIO DE MENSAJES ----------
+document.querySelector(".cliente-input input").addEventListener("keydown", function(e){
+  if (e.key === "Enter") { e.preventDefault(); enviarMensajeCliente(); }
+});
+document.querySelector(".cliente-input button").addEventListener("click", enviarMensajeCliente);
+
+function enviarMensajeCliente(){
+  var caja = document.querySelector(".cliente-input input");
+  var texto = caja.value.trim();
+  if (!texto || enviando) return;
+  caja.value = "";
+  enviarAlServidor(texto, true);
+}
+
+function enviarAlServidor(mensaje, mostrarBurbuja){
+  if (enviando) return;
+  enviando = true;
+  document.querySelector(".cliente-input button").disabled = true;
+
+  if (mostrarBurbuja) agregarBurbuja("cliente", mensaje);
+  mostrarEscribiendo();
+
+  fetch(SCRIPT_AGENDA, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ action: "chat", telefono: telefono, mensaje: mensaje })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(data){
+    quitarEscribiendo();
+    var r = data && data.result_chat;
+    if (r && r.ok) {
+      registrado = !!r.registrado;
+      actualizarBotonPuntos();
+      agregarBurbuja("ia", r.respuesta || "…", "ia");
+      ultimoConteoMensajes += 2;
+    } else {
+      agregarSistema("⚠️ Hubo un problema procesando tu mensaje. Intentá de nuevo.");
+    }
+    terminarEnvio();
+  })
+  .catch(function(){
+    quitarEscribiendo();
+    agregarSistema("⚠️ Sin conexión. Verificá tu internet e intentá de nuevo.");
+    terminarEnvio();
+  });
+}
+
+function terminarEnvio(){
+  enviando = false;
+  document.querySelector(".cliente-input button").disabled = false;
+}
+
+// ---------- REFRESCO EN VIVO ----------
+function iniciarPollingChat(){
+  if (pollingChatTimer) return;
+  pollingChatTimer = setInterval(function(){
+    if (document.hidden) return;
+    if (enviando) return;
+    consultarNuevosMensajesChat();
+  }, INTERVALO_POLLING_MS);
+}
+
+function consultarNuevosMensajesChat(){
+  if (!telefono) return;
+  fetch(SCRIPT_AGENDA, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ action: "chat", subaction: "historial", telefono: telefono })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(data){
+    if (!data || !data.mensajes) return;
+    if (data.mensajes.length <= ultimoConteoMensajes) return;
+    for (var i = ultimoConteoMensajes; i < data.mensajes.length; i++){
+      var msj = data.mensajes[i];
+      if (msj.emisor === "cliente") continue;
+      var tipo = (msj.emisor === "admin") ? "admin" : "ia";
+      agregarBurbujaHistorico(tipo, msj.mensaje, msj.fechaHora, msj.emisor);
+    }
+    ultimoConteoMensajes = data.mensajes.length;
+  })
+  .catch(function(){});
+}
+
+document.addEventListener("visibilitychange", function(){
+  if (!document.hidden) consultarNuevosMensajesChat();
+});
+
+// ---------- BURBUJAS ----------
+function agregarBurbuja(tipo, texto, emisor){
+  var chat = document.querySelector(".cliente-chat");
+  var fila = document.createElement("div");
+  fila.className = "fila " + tipo;
+  var b = document.createElement("div");
+  b.className = "burbuja";
+  b.innerHTML = formatear(texto);
+  var h = document.createElement("div");
+  h.className = "hora";
+  h.textContent = etiquetaHora(tipo, emisor, horaAhora());
+  fila.appendChild(b);
+  fila.appendChild(h);
+  chat.appendChild(fila);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function agregarBurbujaHistorico(tipo, texto, fechaHora, emisor){
+  var chat = document.querySelector(".cliente-chat");
+  var fila = document.createElement("div");
+  fila.className = "fila " + tipo;
+  var b = document.createElement("div");
+  b.className = "burbuja";
+  b.innerHTML = formatear(texto);
+  var h = document.createElement("div");
+  h.className = "hora";
+  h.textContent = etiquetaHora(tipo, emisor, horaDeString(fechaHora));
+  fila.appendChild(b);
+  fila.appendChild(h);
+  chat.appendChild(fila);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function etiquetaHora(tipo, emisor, hora){
+  if (tipo === "cliente") return hora;
+  if (emisor === "admin") return "Higuito · " + hora;
+  return "🤖 IA · " + hora;
+}
+
+function agregarSistema(texto){
+  var chat = document.querySelector(".cliente-chat");
+  var d = document.createElement("div");
+  d.style.cssText = "align-self:center; color:#aaa; font-size:12px; font-style:italic; text-align:center; padding:4px 10px;";
+  d.textContent = texto;
+  chat.appendChild(d);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function mostrarEscribiendo(){
+  quitarEscribiendo();
+  var chat = document.querySelector(".cliente-chat");
+  var fila = document.createElement("div");
+  fila.className = "fila ia";
+  fila.id = "escribiendo";
+  fila.innerHTML = '<div class="burbuja" style="display:flex; gap:5px;"><div style="width:7px; height:7px; border-radius:50%; background:#F9A825; animation:salto 1s infinite;"></div><div style="width:7px; height:7px; border-radius:50%; background:#F9A825; animation:salto 1s infinite; animation-delay:.15s;"></div><div style="width:7px; height:7px; border-radius:50%; background:#F9A825; animation:salto 1s infinite; animation-delay:.3s;"></div></div>';
+  chat.appendChild(fila);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function quitarEscribiendo(){
+  var e = document.getElementById("escribiendo");
+  if (e) e.remove();
+}
+
+function formatear(t){
+  var s = (t || "").toString()
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+  s = s.replace(/\*([^*\n]+)\*/gu, "<strong>$1</strong>");
+  s = s.replace(/\n/g, "<br>");
+  return s;
+}
+
+function horaAhora(){
+  var d = new Date();
+  var h = d.getHours();
+  var m = ("0" + d.getMinutes()).slice(-2);
+  var ap = h >= 12 ? "pm" : "am";
+  h = h % 12; if (h === 0) h = 12;
+  return h + ":" + m + " " + ap;
+}
+
+function horaDeString(s){
+  try {
+    var partes = (s || "").toString().split(" ");
+    if (partes.length < 2) return horaAhora();
+    var hm = partes[1].split(":");
+    var h = parseInt(hm[0], 10);
+    var m = ("0" + parseInt(hm[1], 10)).slice(-2);
+    var ap = h >= 12 ? "pm" : "am";
+    h = h % 12; if (h === 0) h = 12;
+    return h + ":" + m + " " + ap;
+  } catch(e){ return horaAhora(); }
+}
+
+// ---------- BOTON PUNTOS ----------
+function actualizarBotonPuntos(){
+  var btn = document.querySelector(".btn-header");
+  if (!btn) return;
+  btn.textContent = registrado ? "⭐ Puntos" : "🔒 Puntos";
+}
+
+document.querySelectorAll(".btn-header").forEach(function(b){
+  if (b.textContent.indexOf("Puntos") >= 0) {
+    b.addEventListener("click", function(){
+      if (registrado) {
+        window.location.href = "index.html";
+      } else {
+        if (!enviando) enviarAlServidor("__puntos__", false);
+      }
+    });
+  } else if (b.textContent.indexOf("Admin") >= 0) {
+    b.addEventListener("click", function(){
+      alert("El acceso admin se conecta en la Tarea 3A.8.3");
+    });
+  }
+});
+
+// ---------- NAVEGACION MOVIL DE LA MAQUETA ADMIN (queda para 3A.8.3) ----------
+document.querySelectorAll(".adm-sidebar .icono").forEach(function(el){
+  el.addEventListener("click", function(){
+    document.body.classList.add("movil-lista");
+    document.body.classList.remove("movil-conversacion");
+  });
+});
+document.querySelectorAll(".adm-lista .item").forEach(function(el){
+  el.addEventListener("click", function(){
+    document.body.classList.remove("movil-lista");
+    document.body.classList.add("movil-conversacion");
+  });
+});
+function volverALista(){
+  document.body.classList.remove("movil-conversacion");
+  document.body.classList.add("movil-lista");
+}
 </script>
 </body>
 </html>
