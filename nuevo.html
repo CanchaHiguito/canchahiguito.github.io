@@ -216,7 +216,7 @@
 
   /* ========== RESPONSIVE — CELULAR ========== */
   @media (max-width: 767px) {
-    /* Modo admin en celular: alternancia */
+    /* Modo admin en celular: alternancia por data-vista-movil */
     .vista-admin {
       display:none;
       position:relative;
@@ -228,9 +228,9 @@
       position:absolute; top:0; left:0; right:0; bottom:0;
       width:100%; max-width:100%;
     }
-    /* Estado inicial: mostrar sidebar de iconos */
+    /* Sidebar en modo celular: iconos grandes con etiquetas */
     body.modo-admin .adm-sidebar {
-      display:flex; width:100%; flex-direction:column;
+      flex-direction:column;
       padding:20px 0; gap:14px;
     }
     body.modo-admin .adm-sidebar .icono {
@@ -243,20 +243,22 @@
       content:attr(data-label); color:inherit;
       font-family:Arial; font-size:15px; font-weight:bold;
     }
-    body.modo-admin .adm-lista,
-    body.modo-admin .adm-conversacion { display:none; }
-    /* Cuando toca icono Mensajes → mostrar lista */
-    body.modo-admin.movil-lista .adm-sidebar { display:none; }
-    body.modo-admin.movil-lista .adm-lista { display:flex; }
-    body.modo-admin.movil-lista .adm-conversacion { display:none; }
-    /* Cuando toca cliente → mostrar conversación */
-    body.modo-admin.movil-conversacion .adm-sidebar { display:none; }
-    body.modo-admin.movil-conversacion .adm-lista { display:none; }
-    body.modo-admin.movil-conversacion .adm-conversacion { display:flex; }
-    body.modo-admin.movil-conversacion .adm-conv-header .volver { display:block; }
-    body.modo-admin.movil-lista .adm-lista .buscador::before {
-      content:"← "; color:#F9A825;
-    }
+    /* Estado por defecto: iconos (aplica cuando data-vista-movil="iconos" o no existe) */
+    body.modo-admin[data-vista-movil="iconos"] .adm-sidebar,
+    body.modo-admin:not([data-vista-movil]) .adm-sidebar { display:flex; }
+    body.modo-admin[data-vista-movil="iconos"] .adm-lista,
+    body.modo-admin:not([data-vista-movil]) .adm-lista { display:none; }
+    body.modo-admin[data-vista-movil="iconos"] .adm-conversacion,
+    body.modo-admin:not([data-vista-movil]) .adm-conversacion { display:none; }
+    /* Vista lista */
+    body.modo-admin[data-vista-movil="lista"] .adm-sidebar { display:none; }
+    body.modo-admin[data-vista-movil="lista"] .adm-lista { display:flex; }
+    body.modo-admin[data-vista-movil="lista"] .adm-conversacion { display:none; }
+    /* Vista conversación */
+    body.modo-admin[data-vista-movil="conversacion"] .adm-sidebar { display:none; }
+    body.modo-admin[data-vista-movil="conversacion"] .adm-lista { display:none; }
+    body.modo-admin[data-vista-movil="conversacion"] .adm-conversacion { display:flex; }
+    body.modo-admin[data-vista-movil="conversacion"] .adm-conv-header .volver { display:block; }
   }
 
   /* Modo cliente en celular */
@@ -733,6 +735,7 @@ document.getElementById("input-pin").addEventListener("keydown", function(e){
 function entrarModoAdmin(){
   document.body.classList.remove("modo-cliente");
   document.body.classList.add("modo-admin");
+  document.body.dataset.vistaMovil = "iconos";
   cargarBandeja();
   if (bandejaTimer) clearInterval(bandejaTimer);
   bandejaTimer = setInterval(cargarBandeja, 15000);
@@ -741,8 +744,7 @@ function entrarModoAdmin(){
 
 function salirModoAdmin(){
   document.body.classList.remove("modo-admin");
-  document.body.classList.remove("movil-lista");
-  document.body.classList.remove("movil-conversacion");
+  delete document.body.dataset.vistaMovil;
   document.body.classList.add("modo-cliente");
   if (bandejaTimer) { clearInterval(bandejaTimer); bandejaTimer = null; }
   if (convTimer) { clearInterval(convTimer); convTimer = null; }
@@ -877,8 +879,7 @@ function abrirConversacionAdmin(idx) {
 
   document.querySelector(".adm-conv-mensajes").innerHTML = '<div style="color:#888; text-align:center; padding:20px; font-size:13px;">Cargando…</div>';
 
-  document.body.classList.remove("movil-lista");
-  document.body.classList.add("movil-conversacion");
+  document.body.dataset.vistaMovil = "conversacion";
 
   cargarConversacionAdmin(true);
   apiChat({ action: "chat", subaction: "marcar", pin: PIN_ADMIN, telefono: c.telefono }, function(){});
@@ -980,8 +981,7 @@ document.querySelectorAll(".adm-sidebar .icono").forEach(function(el){
 
 // ---------- BOTON VOLVER (movil) ----------
 function volverALista(){
-  document.body.classList.remove("movil-conversacion");
-  document.body.classList.add("movil-lista");
+  document.body.dataset.vistaMovil = "lista";
   convTelefonoActual = null;
   if (convTimer) { clearInterval(convTimer); convTimer = null; }
 }
@@ -1023,8 +1023,7 @@ function actualizarBotonAdminHeader(){
 document.querySelectorAll(".adm-sidebar .icono").forEach(function(el){
   el.addEventListener("click", function(){
     if (el.getAttribute("data-label") === "Mensajes") {
-      document.body.classList.add("movil-lista");
-      document.body.classList.remove("movil-conversacion");
+      document.body.dataset.vistaMovil = "lista";
     }
   });
 });
