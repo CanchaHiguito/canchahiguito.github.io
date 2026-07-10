@@ -314,70 +314,19 @@
         <div class="buscador">
           <input type="text" placeholder="🔎 Buscar cliente…">
         </div>
-        <div class="items">
-          <div class="item activo">
-            <div class="top">
-              <span class="nombre">Carlos Ramírez</span>
-              <span class="hora">3:12 pm</span>
-            </div>
-            <div class="tel">50688884321</div>
-            <div class="bottom">
-              <span class="ultimo">¿A qué hora abren mañana?</span>
-              <span class="noleidos">3</span>
-            </div>
-          </div>
-          <div class="item">
-            <div class="top">
-              <span class="nombre">María González</span>
-              <span class="hora">2:47 pm</span>
-            </div>
-            <div class="tel">50687651234</div>
-            <div class="bottom">
-              <span class="ultimo">Vos: Perfecto, te la reservé</span>
-            </div>
-          </div>
-          <div class="item">
-            <div class="top">
-              <span class="nombre">Luis Chaves</span>
-              <span class="hora">1:20 pm</span>
-            </div>
-            <div class="tel">50699887766</div>
-            <div class="bottom">
-              <span class="ultimo">IA: ¡Con gusto! ¿Otra cosa?</span>
-            </div>
-          </div>
-          <div class="item">
-            <div class="top">
-              <span class="nombre">Ana Solano</span>
-              <span class="hora">Ayer</span>
-            </div>
-            <div class="tel">50611223344</div>
-            <div class="bottom">
-              <span class="ultimo">Cliente: gracias!</span>
-            </div>
-          </div>
-        </div>
+        <div class="items"></div>
       </div>
 
       <div class="adm-conversacion">
         <div class="adm-conv-header">
           <button class="volver" onclick="volverALista()">←</button>
-          <div class="avatar">CR</div>
+          <div class="avatar">?</div>
           <div class="info">
-            <div class="n">Carlos Ramírez</div>
-            <div class="s">50688884321 · en línea</div>
+            <div class="n">Seleccioná una conversación</div>
+            <div class="s">—</div>
           </div>
         </div>
-        <div class="adm-conv-mensajes">
-          <div class="fila ia">
-            <div class="burbuja">¡Hola! ¿En qué te ayudo?</div>
-            <div class="hora">🤖 IA · 3:10 pm</div>
-          </div>
-          <div class="fila cliente">
-            <div class="burbuja">¿A qué hora abren mañana?</div>
-            <div class="hora">3:12 pm</div>
-          </div>
-        </div>
+        <div class="adm-conv-mensajes"><div style="color:#888; text-align:center; padding:30px 20px; font-size:13px;">Seleccioná una conversación de la lista</div></div>
         <div class="adm-conv-input">
           <input type="text" placeholder="Escribí tu mensaje…">
           <button>➤</button>
@@ -386,6 +335,24 @@
 
     </div>
 
+  </div>
+
+  <div id="modal-pin" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.94); align-items:center; justify-content:center; padding:20px; z-index:400;">
+    <div style="background:#1a1a1a; border:2px solid #F9A825; border-radius:14px; padding:26px 20px; width:100%; max-width:340px; text-align:center;">
+      <h2 style="color:#F9A825; font-size:18px; margin-bottom:6px;">🔐 Acceso administrador</h2>
+      <p style="color:#aaa; font-size:13px; line-height:1.5; margin-bottom:16px;">Ingresá el PIN de 4 dígitos.</p>
+      <input id="input-pin" type="password" inputmode="numeric" maxlength="4" placeholder="••••"
+             style="width:100%; background:#111; border:1px solid #333; border-radius:8px; padding:14px; color:#fff; font-size:24px; letter-spacing:12px; text-align:center; margin-bottom:6px;">
+      <div id="err-pin" style="color:#EF9A9A; font-size:12px; min-height:16px; margin-bottom:10px;"></div>
+      <div style="display:flex; gap:8px; margin-bottom:14px;">
+        <button onclick="cerrarPin()" style="flex:1; background:#333; color:#fff; border:none; border-radius:8px; padding:14px; font-size:15px; cursor:pointer;">Cancelar</button>
+        <button onclick="verificarPin()" style="flex:2; background:#B71C1C; color:#fff; border:none; border-radius:8px; padding:14px; font-size:16px; font-weight:bold; cursor:pointer;">Ingresar</button>
+      </div>
+      <div style="border-top:1px solid #333; padding-top:14px;">
+        <p style="color:#888; font-size:11px; margin-bottom:8px;">¿Sos encargado?</p>
+        <button onclick="abrirEscanerDirecto()" style="width:100%; background:none; color:#F9A825; border:1px solid #F9A825; border-radius:8px; padding:12px; font-size:14px; font-weight:bold; cursor:pointer;">📷 Abrir escáner de puntos</button>
+      </div>
+    </div>
   </div>
 
   <div id="modal-telefono" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.92); align-items:center; justify-content:center; padding:20px; z-index:300;">
@@ -686,29 +653,340 @@ document.querySelectorAll(".btn-header").forEach(function(b){
       }
     });
   } else if (b.textContent.indexOf("Admin") >= 0) {
-    b.addEventListener("click", function(){
-      alert("El acceso admin se conecta en la Tarea 3A.8.3");
-    });
+    b.addEventListener("click", abrirPinAdmin);
   }
 });
 
-// ---------- NAVEGACION MOVIL DE LA MAQUETA ADMIN (queda para 3A.8.3) ----------
+
+
+// ============================================================
+// FASE 3A.8.3 — Wireup del MODO ADMIN
+// PIN, bandeja de mensajes con endpoints reales,
+// envio con push, marcar leidos, refresco cada 15 seg.
+// Las secciones Reservacion/Push/Encargados/Escaner
+// se activan en tareas siguientes.
+// ============================================================
+
+var PIN_ADMIN_LS = "higuito_admin_pin";
+var PIN_ADMIN = "1787";
+var pinValidado = false;
+
+var bandejaTimer = null;
+var convTimer = null;
+var convTelefonoActual = null;
+var convUltimoCount = 0;
+var bandejaConversaciones = [];
+
+// ---------- MODAL PIN ----------
+function abrirPinAdmin(){
+  var guardado = localStorage.getItem(PIN_ADMIN_LS);
+  if (guardado === "ok") {
+    pinValidado = true;
+    entrarModoAdmin();
+    return;
+  }
+  document.getElementById("modal-pin").style.display = "flex";
+  var i = document.getElementById("input-pin");
+  i.value = "";
+  document.getElementById("err-pin").textContent = "";
+  setTimeout(function(){ i.focus(); }, 100);
+}
+
+function cerrarPin(){
+  document.getElementById("modal-pin").style.display = "none";
+}
+
+function abrirEscanerDirecto(){
+  window.location.href = "encargado-scan.html";
+}
+
+function verificarPin(){
+  var v = document.getElementById("input-pin").value.trim();
+  var err = document.getElementById("err-pin");
+  if (v.length !== 4 || !/^\d{4}$/.test(v)) {
+    err.textContent = "El PIN son 4 dígitos.";
+    return;
+  }
+  if (v !== PIN_ADMIN) {
+    err.textContent = "PIN incorrecto.";
+    document.getElementById("input-pin").value = "";
+    return;
+  }
+  pinValidado = true;
+  localStorage.setItem(PIN_ADMIN_LS, "ok");
+  cerrarPin();
+  entrarModoAdmin();
+}
+
+document.getElementById("input-pin").addEventListener("keydown", function(e){
+  if (e.key === "Enter") { e.preventDefault(); verificarPin(); }
+});
+
+// ---------- CAMBIO DE MODO ----------
+function entrarModoAdmin(){
+  document.body.classList.remove("modo-cliente");
+  document.body.classList.add("modo-admin");
+  cargarBandeja();
+  if (bandejaTimer) clearInterval(bandejaTimer);
+  bandejaTimer = setInterval(cargarBandeja, 15000);
+}
+
+function salirModoAdmin(){
+  document.body.classList.remove("modo-admin");
+  document.body.classList.remove("movil-lista");
+  document.body.classList.remove("movil-conversacion");
+  document.body.classList.add("modo-cliente");
+  if (bandejaTimer) { clearInterval(bandejaTimer); bandejaTimer = null; }
+  if (convTimer) { clearInterval(convTimer); convTimer = null; }
+  convTelefonoActual = null;
+}
+
+// ---------- API HELPER ----------
+function apiChat(payload, cb) {
+  fetch(SCRIPT_AGENDA, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(payload)
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(data){ cb(data); })
+  .catch(function(){ cb(null); });
+}
+
+// ---------- ESCAPES Y HELPERS ----------
+function escaparHTML(t) {
+  return (t === null || t === undefined ? "" : t.toString())
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function formatearMsjAdmin(t) {
+  var s = escaparHTML(t);
+  s = s.replace(/\*([^*\n]+)\*/gu, "<strong>$1</strong>");
+  return s.replace(/\n/g, "<br>");
+}
+
+function horaBandejaAdmin(f) {
+  try {
+    var partes = (f || "").split(" ");
+    if (partes.length < 2) return "";
+    var fecha = partes[0];
+    var hm = partes[1].split(":");
+    var hoy = new Date();
+    var hoyStr = hoy.getFullYear() + "-" +
+                 ("0" + (hoy.getMonth() + 1)).slice(-2) + "-" +
+                 ("0" + hoy.getDate()).slice(-2);
+    if (fecha !== hoyStr) {
+      var p = fecha.split("-");
+      var meses = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+      return parseInt(p[2], 10) + " " + meses[parseInt(p[1], 10) - 1];
+    }
+    var h = parseInt(hm[0], 10);
+    var m = ("0" + parseInt(hm[1], 10)).slice(-2);
+    var ap = h >= 12 ? "pm" : "am";
+    h = h % 12; if (h === 0) h = 12;
+    return h + ":" + m + " " + ap;
+  } catch (e) { return ""; }
+}
+
+function prefijoEmisorAdmin(e) {
+  if (e === "admin") return "Vos: ";
+  if (e === "ia") return "IA: ";
+  return "";
+}
+
+// ---------- BANDEJA (columna 2) ----------
+function cargarBandeja() {
+  apiChat({ action: "chat", subaction: "listar", pin: PIN_ADMIN }, function(data){
+    var cont = document.querySelector(".adm-lista .items");
+    if (!cont) return;
+    if (!data || !data.conversaciones) {
+      cont.innerHTML = '<div style="color:#888; text-align:center; padding:20px; font-size:13px;">⚠️ No se pudo cargar. Reintentando…</div>';
+      return;
+    }
+    bandejaConversaciones = data.conversaciones;
+    if (data.conversaciones.length === 0) {
+      cont.innerHTML = '<div style="color:#888; text-align:center; padding:20px; font-size:13px;">Sin conversaciones todavía.</div>';
+      return;
+    }
+    var html = "";
+    for (var i = 0; i < data.conversaciones.length; i++) {
+      var c = data.conversaciones[i];
+      var nombre = c.nombre || "Sin nombre";
+      var badge = (c.noLeidos > 0) ? '<span class="noleidos">' + c.noLeidos + '</span>' : '';
+      var activo = (c.telefono === convTelefonoActual) ? " activo" : "";
+      html += '<div class="item' + activo + '" onclick="abrirConversacionAdmin(' + i + ')">'
+           +    '<div class="top"><span class="nombre">' + escaparHTML(nombre) + '</span>'
+           +      '<span class="hora">' + horaBandejaAdmin(c.fechaHora) + '</span></div>'
+           +    '<div class="tel">' + escaparHTML(c.telefono) + '</div>'
+           +    '<div class="bottom">'
+           +      '<span class="ultimo">' + escaparHTML(prefijoEmisorAdmin(c.emisorUltimo) + c.ultimoMensaje) + '</span>'
+           +      badge
+           +    '</div>'
+           +  '</div>';
+    }
+    cont.innerHTML = html;
+    actualizarBadgeIcono();
+  });
+}
+
+function actualizarBadgeIcono(){
+  var tot = 0;
+  for (var i = 0; i < bandejaConversaciones.length; i++) {
+    tot += (bandejaConversaciones[i].noLeidos || 0);
+  }
+  var badge = document.querySelector('.adm-sidebar .icono[data-label="Mensajes"] .badge');
+  if (badge) {
+    if (tot > 0) { badge.textContent = tot; badge.style.display = "flex"; }
+    else { badge.style.display = "none"; }
+  }
+}
+
+// ---------- BUSCADOR ----------
+document.querySelector(".adm-lista .buscador input").addEventListener("input", function(e){
+  var q = e.target.value.toLowerCase().trim();
+  var items = document.querySelectorAll(".adm-lista .item");
+  items.forEach(function(it){
+    var texto = it.textContent.toLowerCase();
+    it.style.display = (q === "" || texto.indexOf(q) !== -1) ? "block" : "none";
+  });
+});
+
+// ---------- CONVERSACION (columna 3) ----------
+function abrirConversacionAdmin(idx) {
+  var c = bandejaConversaciones[idx];
+  if (!c) return;
+  convTelefonoActual = c.telefono;
+  convUltimoCount = 0;
+
+  var av = document.querySelector(".adm-conv-header .avatar");
+  var n  = document.querySelector(".adm-conv-header .info .n");
+  var s  = document.querySelector(".adm-conv-header .info .s");
+  var nombre = c.nombre || "Sin nombre";
+  var iniciales = nombre.split(" ").map(function(p){ return p.charAt(0); }).join("").substring(0,2).toUpperCase();
+  av.textContent = iniciales || "?";
+  n.textContent = nombre;
+  s.textContent = c.telefono;
+
+  document.querySelector(".adm-conv-mensajes").innerHTML = '<div style="color:#888; text-align:center; padding:20px; font-size:13px;">Cargando…</div>';
+
+  document.body.classList.remove("movil-lista");
+  document.body.classList.add("movil-conversacion");
+
+  cargarConversacionAdmin(true);
+  apiChat({ action: "chat", subaction: "marcar", pin: PIN_ADMIN, telefono: c.telefono }, function(){});
+
+  if (convTimer) clearInterval(convTimer);
+  convTimer = setInterval(function(){ cargarConversacionAdmin(false); }, 5000);
+
+  document.querySelectorAll(".adm-lista .item").forEach(function(el, i){
+    if (i === idx) el.classList.add("activo"); else el.classList.remove("activo");
+  });
+}
+
+function cargarConversacionAdmin(forzar) {
+  if (!convTelefonoActual) return;
+  var tel = convTelefonoActual;
+  apiChat({ action: "chat", subaction: "obtener", pin: PIN_ADMIN, telefono: tel }, function(data){
+    if (!data || !data.mensajes || convTelefonoActual !== tel) return;
+    if (data.mensajes.length === convUltimoCount && !forzar) return;
+    var llegaronNuevos = (data.mensajes.length > convUltimoCount && convUltimoCount > 0);
+    convUltimoCount = data.mensajes.length;
+    var cont = document.querySelector(".adm-conv-mensajes");
+    var html = "";
+    for (var i = 0; i < data.mensajes.length; i++) {
+      var m = data.mensajes[i];
+      var lado = (m.emisor === "admin") ? "admin" : ((m.emisor === "cliente") ? "cliente" : "ia");
+      var etiq = "";
+      if (lado === "ia")    etiq = "🤖 IA · ";
+      if (lado === "admin") etiq = "Vos · ";
+      html += '<div class="fila ' + lado + '">'
+           +    '<div class="burbuja">' + formatearMsjAdmin(m.mensaje) + '</div>'
+           +    '<div class="hora">' + etiq + horaBandejaAdmin(m.fechaHora) + '</div>'
+           +  '</div>';
+    }
+    cont.innerHTML = html;
+    cont.scrollTop = cont.scrollHeight;
+    if (llegaronNuevos) {
+      apiChat({ action: "chat", subaction: "marcar", pin: PIN_ADMIN, telefono: tel }, function(){});
+    }
+  });
+}
+
+// ---------- ENVIO DE MENSAJE ADMIN ----------
+document.querySelector(".adm-conv-input input").addEventListener("keydown", function(e){
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    enviarAdminUI();
+  }
+});
+document.querySelector(".adm-conv-input button").addEventListener("click", enviarAdminUI);
+
+function enviarAdminUI() {
+  var caja = document.querySelector(".adm-conv-input input");
+  var texto = caja.value.trim();
+  if (!texto || !convTelefonoActual) return;
+  var btn = document.querySelector(".adm-conv-input button");
+  caja.value = "";
+  btn.disabled = true;
+  apiChat({
+    action: "chat", subaction: "enviaradmin", pin: PIN_ADMIN,
+    telefono: convTelefonoActual, mensaje: texto
+  }, function(data){
+    btn.disabled = false;
+    if (data && data.ok) {
+      cargarConversacionAdmin(true);
+      if (data.pushEnviado) {
+        mostrarToast("🔔 Notificación enviada al cliente");
+      } else {
+        mostrarToast("💬 Guardado (sin push: " + (data.pushDetalle || "") + ")");
+      }
+    } else {
+      mostrarToast("⚠️ No se pudo enviar. Reintentá.");
+    }
+  });
+}
+
+function mostrarToast(msj) {
+  var t = document.createElement("div");
+  t.style.cssText = "position:fixed; bottom:80px; left:50%; transform:translateX(-50%); background:#1a1a1a; color:#F9A825; border:1px solid #F9A825; border-radius:8px; padding:10px 16px; font-size:13px; z-index:500; box-shadow:0 4px 12px rgba(0,0,0,0.6); max-width:90%;";
+  t.textContent = msj;
+  document.body.appendChild(t);
+  setTimeout(function(){ t.remove(); }, 5000);
+}
+
+// ---------- NAVEGACION SIDEBAR (icono activo) ----------
 document.querySelectorAll(".adm-sidebar .icono").forEach(function(el){
   el.addEventListener("click", function(){
-    document.body.classList.add("movil-lista");
-    document.body.classList.remove("movil-conversacion");
+    var label = el.getAttribute("data-label");
+    document.querySelectorAll(".adm-sidebar .icono").forEach(function(o){ o.classList.remove("activo"); });
+    el.classList.add("activo");
+    if (label === "Mensajes") {
+      cargarBandeja();
+    } else if (label === "Escáner") {
+      window.location.href = "encargado-scan.html";
+    } else {
+      mostrarToast("Sección «" + label + "»: se activa en la siguiente tarea.");
+    }
   });
 });
-document.querySelectorAll(".adm-lista .item").forEach(function(el){
-  el.addEventListener("click", function(){
-    document.body.classList.remove("movil-lista");
-    document.body.classList.add("movil-conversacion");
-  });
-});
+
+// ---------- BOTON VOLVER (movil) ----------
 function volverALista(){
   document.body.classList.remove("movil-conversacion");
   document.body.classList.add("movil-lista");
+  convTelefonoActual = null;
+  if (convTimer) { clearInterval(convTimer); convTimer = null; }
 }
+
+// En movil: al tocar icono Mensajes navega a la lista
+document.querySelectorAll(".adm-sidebar .icono").forEach(function(el){
+  el.addEventListener("click", function(){
+    if (el.getAttribute("data-label") === "Mensajes") {
+      document.body.classList.add("movil-lista");
+      document.body.classList.remove("movil-conversacion");
+    }
+  });
+});
 </script>
 </body>
 </html>
