@@ -9,9 +9,9 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "/logo-admin.jpg",
+      "src": "/logo.jpeg",
       "sizes": "512x512",
-      "type": "image/jpg",
+      "type": "image/jpeg",
       "purpose": "any maskable"
     }
   ]

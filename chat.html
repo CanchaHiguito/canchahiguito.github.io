@@ -76,16 +76,18 @@
     word-wrap:break-word;
   }
   .cliente .burbuja {
-    background:#f5f5f5;
-    color:#111;
-    border-right:4px solid #B71C1C;
+    background:#B71C1C;
+    color:#fff;
+    border-right:6px solid #F9A825;
     border-top-right-radius:4px;
+    box-shadow:3px 3px 8px rgba(183,28,28,0.5);
   }
   .ia .burbuja {
-    background:#fff;
-    color:#111;
-    border-left:4px solid #F9A825;
+    background:#2a2a2a;
+    color:#fff;
+    border-left:6px solid #F9A825;
     border-top-left-radius:4px;
+    box-shadow:-3px 3px 8px rgba(249,168,37,0.35);
   }
   .hora { font-size:10px; color:#888; margin-top:3px; }
   .sistema {
@@ -291,7 +293,7 @@ document.getElementById("tel").addEventListener("keydown", function(e){
           } catch(e){ return horaAhora(); }
         }
 
-        function agregarBurbujaHistorico(tipo, texto, fechaHora){
+        function agregarBurbujaHistorico(tipo, texto, fechaHora, emisor){
           var chat = document.getElementById("chat");
           var fila = document.createElement("div");
           fila.className = "fila " + tipo;
@@ -300,7 +302,7 @@ document.getElementById("tel").addEventListener("keydown", function(e){
           b.innerHTML = formatear(texto);
           var h = document.createElement("div");
           h.className = "hora";
-          h.textContent = horaDeString(fechaHora);
+          h.textContent = etiquetaHora(tipo, emisor, horaDeString(fechaHora));
           fila.appendChild(b);
           fila.appendChild(h);
           chat.appendChild(fila);
@@ -320,8 +322,10 @@ document.getElementById("tel").addEventListener("keydown", function(e){
               for (var i = 0; i < data.mensajes.length; i++){
                 var msj = data.mensajes[i];
                 var tipo = (msj.emisor === "cliente") ? "cliente" : "ia";
-                agregarBurbujaHistorico(tipo, msj.mensaje, msj.fechaHora);
+                agregarBurbujaHistorico(tipo, msj.mensaje, msj.fechaHora, msj.emisor);
               }
+              ultimoConteoMensajes = data.mensajes.length;
+              iniciarPollingChat();
               callback(true);
             } else {
               callback(false);
@@ -330,12 +334,14 @@ document.getElementById("tel").addEventListener("keydown", function(e){
           .catch(function(){ callback(false); });
         }
   function iniciarConversacion(){
- cargarHistorialCliente(function(huboHistorial){
-        if (!huboHistorial) {
-          enviarAlServidor("__inicio__", false);
-        }
-      });
-}
+    cargarHistorialCliente(function(huboHistorial){
+      if (!huboHistorial) {
+        ultimoConteoMensajes = 0;
+        enviarAlServidor("__inicio__", false);
+        iniciarPollingChat();
+      }
+    });
+  }
 
 // ---------- ENVÍO DE MENSAJES ----------
 function enviarMensaje(){
@@ -370,7 +376,8 @@ function enviarAlServidor(mensaje, mostrarBurbuja){
     if (r && r.ok) {
       registrado = !!r.registrado;
       actualizarBotonPuntos();
-      agregarBurbuja("ia", r.respuesta || "…");
+      agregarBurbuja("ia", r.respuesta || "…", "ia");
+      ultimoConteoMensajes += 2;
     } else {
       agregarSistema("⚠️ Hubo un problema procesando tu mensaje. Intentá de nuevo.");
     }
@@ -389,7 +396,7 @@ function terminarEnvio(){
 }
 
 // ---------- BURBUJAS Y PANTALLA ----------
-function agregarBurbuja(tipo, texto){
+function agregarBurbuja(tipo, texto, emisor){
   var chat = document.getElementById("chat");
   var fila = document.createElement("div");
   fila.className = "fila " + tipo;
@@ -400,12 +407,18 @@ function agregarBurbuja(tipo, texto){
 
   var h = document.createElement("div");
   h.className = "hora";
-  h.textContent = horaAhora();
+  h.textContent = etiquetaHora(tipo, emisor, horaAhora());
 
   fila.appendChild(b);
   fila.appendChild(h);
   chat.appendChild(fila);
   chat.scrollTop = chat.scrollHeight;
+}
+
+function etiquetaHora(tipo, emisor, hora){
+  if (tipo === "cliente") return hora;
+  if (emisor === "admin") return "Higuito · " + hora;
+  return "🤖 IA · " + hora;
 }
 
 function agregarSistema(texto){
@@ -473,11 +486,48 @@ function clickPuntos(){
 }
 
 // ============================================================
-// NOTA FASE 3 (no borrar):
-// aquí se agregará la consulta periódica de mensajes nuevos
-// para recibir respuestas del administrador cuando exista
-// el panel de bandeja de entrada.
+// FASE 3A.7 — Refresco en vivo del chat del cliente
+// Cada 8 segundos consulta si hay mensajes nuevos (típicamente
+// del administrador). Se pausa automáticamente cuando la app
+// pasa a segundo plano y se reanuda al volver.
 // ============================================================
+var ultimoConteoMensajes = 0;
+var pollingChatTimer = null;
+var INTERVALO_POLLING_MS = 8000;
+
+function iniciarPollingChat(){
+  if (pollingChatTimer) return;
+  pollingChatTimer = setInterval(function(){
+    if (document.hidden) return;
+    if (enviando) return;
+    consultarNuevosMensajesChat();
+  }, INTERVALO_POLLING_MS);
+}
+
+function consultarNuevosMensajesChat(){
+  if (!telefono) return;
+  fetch(SCRIPT_AGENDA, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ action: "chat", subaction: "historial", telefono: telefono })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(data){
+    if (!data || !data.mensajes) return;
+    if (data.mensajes.length <= ultimoConteoMensajes) return;
+    for (var i = ultimoConteoMensajes; i < data.mensajes.length; i++){
+      var msj = data.mensajes[i];
+      if (msj.emisor === "cliente") continue;
+      agregarBurbujaHistorico("ia", msj.mensaje, msj.fechaHora, msj.emisor);
+    }
+    ultimoConteoMensajes = data.mensajes.length;
+  })
+  .catch(function(){});
+}
+
+document.addEventListener("visibilitychange", function(){
+  if (!document.hidden) consultarNuevosMensajesChat();
+});
 </script>
 </body>
 </html>
