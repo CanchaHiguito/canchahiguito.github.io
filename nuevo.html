@@ -163,8 +163,9 @@
     flex-shrink:0;
   }
   .adm-conv-header .volver {
-    background:none; border:1px solid #555; color:#ddd;
-    border-radius:6px; padding:6px 10px; font-size:13px; cursor:pointer;
+    background:#1a1a1a; border:1px solid #F9A825; color:#F9A825;
+    border-radius:8px; padding:8px 14px; font-size:18px; font-weight:bold;
+    cursor:pointer; min-width:44px; min-height:40px;
     display:none;
   }
   .adm-conv-header .avatar {
@@ -281,8 +282,8 @@
       <div class="sub">Chat</div>
     </div>
     <div class="acciones-header">
-      <button class="btn-header">🔒 Puntos</button>
-      <button class="btn-header">⚙️ Admin</button>
+      <button class="btn-header" data-rol="puntos">🔒 Puntos</button>
+      <button class="btn-header" data-rol="admin">⚙️ Admin</button>
     </div>
   </header>
 
@@ -319,7 +320,7 @@
 
       <div class="adm-conversacion">
         <div class="adm-conv-header">
-          <button class="volver" onclick="volverALista()">←</button>
+          <button class="volver" id="btn-volver-conv" type="button">← Volver</button>
           <div class="avatar">?</div>
           <div class="info">
             <div class="n">Seleccioná una conversación</div>
@@ -644,7 +645,7 @@ function actualizarBotonPuntos(){
 }
 
 document.querySelectorAll(".btn-header").forEach(function(b){
-  if (b.textContent.indexOf("Puntos") >= 0) {
+  if (b.dataset.rol === "puntos") {
     b.addEventListener("click", function(){
       if (registrado) {
         window.location.href = "index.html";
@@ -652,8 +653,14 @@ document.querySelectorAll(".btn-header").forEach(function(b){
         if (!enviando) enviarAlServidor("__puntos__", false);
       }
     });
-  } else if (b.textContent.indexOf("Admin") >= 0) {
-    b.addEventListener("click", abrirPinAdmin);
+  } else if (b.dataset.rol === "admin") {
+    b.addEventListener("click", function(){
+      if (document.body.classList.contains("modo-admin")) {
+        salirDeAdmin();
+      } else {
+        abrirPinAdmin();
+      }
+    });
   }
 });
 
@@ -697,7 +704,7 @@ function cerrarPin(){
 }
 
 function abrirEscanerDirecto(){
-  window.location.href = "encargado-scan.html";
+  window.location.href = "encargado-camara.html";
 }
 
 function verificarPin(){
@@ -729,6 +736,7 @@ function entrarModoAdmin(){
   cargarBandeja();
   if (bandejaTimer) clearInterval(bandejaTimer);
   bandejaTimer = setInterval(cargarBandeja, 15000);
+  actualizarBotonAdminHeader();
 }
 
 function salirModoAdmin(){
@@ -963,7 +971,7 @@ document.querySelectorAll(".adm-sidebar .icono").forEach(function(el){
     if (label === "Mensajes") {
       cargarBandeja();
     } else if (label === "Escáner") {
-      window.location.href = "encargado-scan.html";
+      window.location.href = "encargado-camara.html";
     } else {
       mostrarToast("Sección «" + label + "»: se activa en la siguiente tarea.");
     }
@@ -976,6 +984,39 @@ function volverALista(){
   document.body.classList.add("movil-lista");
   convTelefonoActual = null;
   if (convTimer) { clearInterval(convTimer); convTimer = null; }
+}
+
+// Enganche adicional por si onclick fallara por scope
+var __btnVolver = document.getElementById("btn-volver-conv");
+if (__btnVolver) {
+  __btnVolver.addEventListener("click", function(e){
+    e.preventDefault();
+    e.stopPropagation();
+    volverALista();
+  }, false);
+  __btnVolver.addEventListener("touchend", function(e){
+    e.preventDefault();
+    volverALista();
+  }, { passive:false });
+}
+
+// ---------- SALIR DEL MODO ADMIN ----------
+function salirDeAdmin(){
+  salirModoAdmin();
+  actualizarBotonAdminHeader();
+}
+
+function actualizarBotonAdminHeader(){
+  var btnAdmin = null;
+  document.querySelectorAll(".btn-header").forEach(function(b){
+    if (b.dataset.rol === "admin") btnAdmin = b;
+  });
+  if (!btnAdmin) return;
+  if (document.body.classList.contains("modo-admin")) {
+    btnAdmin.innerHTML = "\ud83d\udeaa Salir";
+  } else {
+    btnAdmin.innerHTML = "\u2699\ufe0f Admin";
+  }
 }
 
 // En movil: al tocar icono Mensajes navega a la lista
