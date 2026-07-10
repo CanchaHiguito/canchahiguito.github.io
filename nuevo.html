@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Higuito — Vista previa 3A.8.1</title>
+<meta name="theme-color" content="#000000">
+<style>
+  /* ============================================================
+     Higuito — Shell unificado (3A.8.1)
+     Colores del proyecto: #000 · #B71C1C · #F9A825 · #2a2a2a
+     Sin JavaScript funcional. Solo estructura visual.
+     ============================================================ */
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { height:100%; overflow:hidden; }
+  body {
+    font-family: Arial, sans-serif;
+    background:#000; color:#fff;
+    display:flex; flex-direction:column;
+    height:100vh; height:100dvh;
+  }
+
+  /* Banda superior de demo (SOLO en esta tarea) */
+  .demo-bar {
+    background:#F9A825; color:#000;
+    padding:6px 12px; font-size:12px; font-weight:bold;
+    display:flex; align-items:center; gap:10px;
+    flex-shrink:0; z-index:200;
+  }
+  .demo-bar span { flex:1; }
+  .demo-bar button {
+    background:#000; color:#F9A825; border:1px solid #000;
+    padding:5px 12px; border-radius:6px; font-size:12px;
+    font-weight:bold; cursor:pointer;
+  }
+
+  /* ========== FILA SUPERIOR (siempre visible) ========== */
+  .app-header {
+    background:#000; border-bottom:3px solid #F9A825;
+    padding:10px 14px; display:flex; align-items:center; gap:10px;
+    flex-shrink:0; z-index:100;
+  }
+  .app-header .logo {
+    width:42px; height:42px; border-radius:50%;
+    background:#B71C1C; color:#fff;
+    display:flex; align-items:center; justify-content:center;
+    font-weight:900; font-size:18px; overflow:hidden;
+  }
+  .app-header .logo img { width:100%; height:100%; object-fit:cover; }
+  .app-header .titulos { flex:1; line-height:1.15; }
+  .app-header .titulos .mini { color:#F9A825; font-size:10px; font-weight:bold; letter-spacing:2px; text-transform:uppercase; }
+  .app-header .titulos .grande { color:#B71C1C; font-size:20px; font-weight:900; letter-spacing:1px; }
+  .app-header .titulos .sub { color:#fff; font-size:11px; }
+  .app-header .acciones-header { display:flex; gap:8px; }
+  .app-header .btn-header {
+    background:#1a1a1a; color:#F9A825; border:1px solid #F9A825;
+    border-radius:8px; padding:7px 12px; font-size:12px; font-weight:bold;
+    cursor:pointer;
+  }
+
+  /* ========== CONTENEDOR PRINCIPAL ========== */
+  .app-body {
+    flex:1; display:flex; overflow:hidden; min-height:0;
+  }
+
+  /* ========== MODO CLIENTE (vista de chat) ========== */
+  body.modo-cliente .vista-admin { display:none; }
+  body.modo-cliente .vista-cliente { display:flex; }
+
+  .vista-cliente {
+    flex:1; flex-direction:column; overflow:hidden; min-height:0;
+    display:none;
+  }
+  .cliente-chat {
+    flex:1; overflow-y:auto; padding:14px 12px;
+    display:flex; flex-direction:column; gap:10px;
+  }
+  .cliente-input {
+    background:#1a1a1a; border-top:1px solid #333;
+    padding:10px 12px; display:flex; gap:8px; flex-shrink:0;
+  }
+  .cliente-input input {
+    flex:1; background:#111; color:#fff; border:1px solid #333;
+    border-radius:8px; padding:12px; font-size:16px;
+  }
+  .cliente-input button {
+    background:#B71C1C; color:#fff; border:none; border-radius:8px;
+    width:48px; font-size:18px; font-weight:bold; cursor:pointer;
+  }
+
+  /* ========== MODO ADMIN (3 columnas) ========== */
+  body.modo-admin .vista-cliente { display:none; }
+  body.modo-admin .vista-admin { display:flex; }
+
+  .vista-admin {
+    flex:1; display:none; overflow:hidden; min-height:0;
+  }
+
+  /* Columna 1: Sidebar de iconos */
+  .adm-sidebar {
+    width:64px; background:#0a0a0a; border-right:1px solid #222;
+    display:flex; flex-direction:column; align-items:center;
+    padding:12px 0; gap:10px; flex-shrink:0;
+  }
+  .adm-sidebar .icono {
+    width:44px; height:44px; border-radius:10px; background:#1a1a1a;
+    color:#aaa; display:flex; align-items:center; justify-content:center;
+    font-size:22px; cursor:pointer; position:relative;
+    transition:background 0.15s;
+  }
+  .adm-sidebar .icono:hover { background:#222; }
+  .adm-sidebar .icono.activo { background:#B71C1C; color:#fff; }
+  .adm-sidebar .icono .badge {
+    position:absolute; top:-3px; right:-3px;
+    background:#F9A825; color:#000; border-radius:999px;
+    min-width:18px; height:18px; font-size:10px; font-weight:bold;
+    display:flex; align-items:center; justify-content:center;
+    padding:0 5px;
+  }
+
+  /* Columna 2: Lista de clientes */
+  .adm-lista {
+    width:280px; background:#0f0f0f; border-right:1px solid #222;
+    display:flex; flex-direction:column; flex-shrink:0;
+    min-height:0;
+  }
+  .adm-lista .buscador {
+    padding:10px; flex-shrink:0;
+  }
+  .adm-lista .buscador input {
+    width:100%; background:#1a1a1a; color:#fff; border:1px solid #333;
+    border-radius:8px; padding:8px 12px; font-size:13px;
+  }
+  .adm-lista .items { flex:1; overflow-y:auto; padding:0 8px 8px; }
+  .adm-lista .item {
+    background:#151515; border-radius:8px; padding:10px;
+    margin-bottom:6px; cursor:pointer;
+    transition:background 0.15s;
+  }
+  .adm-lista .item:hover { background:#1f1f1f; }
+  .adm-lista .item.activo {
+    background:#1f1f1f; border-left:3px solid #F9A825;
+    padding-left:7px;
+  }
+  .adm-lista .item .top {
+    display:flex; justify-content:space-between; align-items:center;
+    margin-bottom:2px; gap:6px;
+  }
+  .adm-lista .item .nombre {
+    color:#fff; font-size:13px; font-weight:bold;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .adm-lista .item .hora { color:#888; font-size:10px; flex-shrink:0; }
+  .adm-lista .item .tel { color:#888; font-size:10px; margin-bottom:3px; }
+  .adm-lista .item .bottom {
+    display:flex; justify-content:space-between; align-items:center; gap:6px;
+  }
+  .adm-lista .item .ultimo {
+    color:#aaa; font-size:12px;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1;
+  }
+  .adm-lista .item .noleidos {
+    background:#B71C1C; color:#fff; border-radius:999px;
+    min-width:18px; height:18px; font-size:10px; font-weight:bold;
+    display:flex; align-items:center; justify-content:center;
+    padding:0 5px; flex-shrink:0;
+  }
+
+  /* Columna 3: Conversación abierta */
+  .adm-conversacion {
+    flex:1; background:#000; display:flex; flex-direction:column;
+    min-width:0; min-height:0;
+  }
+  .adm-conv-header {
+    background:#0a0a0a; border-bottom:1px solid #222;
+    padding:10px 14px; display:flex; align-items:center; gap:10px;
+    flex-shrink:0;
+  }
+  .adm-conv-header .volver {
+    background:none; border:1px solid #555; color:#ddd;
+    border-radius:6px; padding:6px 10px; font-size:13px; cursor:pointer;
+    display:none;
+  }
+  .adm-conv-header .avatar {
+    width:36px; height:36px; border-radius:50%; background:#2E7D32;
+    color:#fff; display:flex; align-items:center; justify-content:center;
+    font-weight:bold; font-size:13px;
+  }
+  .adm-conv-header .info { flex:1; line-height:1.2; }
+  .adm-conv-header .info .n { color:#fff; font-size:14px; font-weight:bold; }
+  .adm-conv-header .info .s { color:#888; font-size:11px; }
+  .adm-conv-mensajes {
+    flex:1; overflow-y:auto; padding:14px;
+    display:flex; flex-direction:column; gap:10px;
+  }
+  .adm-conv-input {
+    background:#0a0a0a; border-top:1px solid #222;
+    padding:10px 12px; display:flex; gap:8px; flex-shrink:0;
+  }
+  .adm-conv-input input {
+    flex:1; background:#1a1a1a; color:#fff; border:1px solid #444;
+    border-radius:8px; padding:10px 12px; font-size:14px;
+  }
+  .adm-conv-input button {
+    background:#B71C1C; color:#fff; border:none; border-radius:8px;
+    padding:0 18px; font-size:16px; font-weight:bold; cursor:pointer;
+  }
+
+  /* ========== BURBUJAS ========== */
+  .fila { display:flex; flex-direction:column; max-width:78%; }
+  .fila.cliente { align-self:flex-end; align-items:flex-end; }
+  .fila.ia, .fila.admin { align-self:flex-start; align-items:flex-start; }
+  .burbuja {
+    padding:10px 12px; border-radius:12px;
+    font-size:14px; line-height:1.45; word-wrap:break-word;
+  }
+  .cliente .burbuja {
+    background:#B71C1C; color:#fff;
+    border-right:6px solid #F9A825; border-top-right-radius:4px;
+    box-shadow:3px 3px 8px rgba(183,28,28,0.5);
+  }
+  .ia .burbuja, .admin .burbuja {
+    background:#2a2a2a; color:#fff;
+    border-left:6px solid #F9A825; border-top-left-radius:4px;
+    box-shadow:-3px 3px 8px rgba(249,168,37,0.35);
+  }
+  .hora { font-size:10px; color:#888; margin-top:3px; }
+  .fila.cliente .hora { text-align:right; }
+
+  /* ========== RESPONSIVE — CELULAR ========== */
+  @media (max-width: 767px) {
+    /* Modo admin en celular: alternancia */
+    .vista-admin {
+      display:none;
+      position:relative;
+    }
+    body.modo-admin .vista-admin { display:block; }
+    body.modo-admin .adm-sidebar,
+    body.modo-admin .adm-lista,
+    body.modo-admin .adm-conversacion {
+      position:absolute; top:0; left:0; right:0; bottom:0;
+      width:100%; max-width:100%;
+    }
+    /* Estado inicial: mostrar sidebar de iconos */
+    body.modo-admin .adm-sidebar {
+      display:flex; width:100%; flex-direction:column;
+      padding:20px 0; gap:14px;
+    }
+    body.modo-admin .adm-sidebar .icono {
+      width:80%; max-width:280px; height:60px;
+      border-radius:12px; font-size:24px;
+      display:flex; align-items:center; justify-content:flex-start;
+      padding:0 20px; gap:14px;
+    }
+    body.modo-admin .adm-sidebar .icono::after {
+      content:attr(data-label); color:inherit;
+      font-family:Arial; font-size:15px; font-weight:bold;
+    }
+    body.modo-admin .adm-lista,
+    body.modo-admin .adm-conversacion { display:none; }
+    /* Cuando toca icono Mensajes → mostrar lista */
+    body.modo-admin.movil-lista .adm-sidebar { display:none; }
+    body.modo-admin.movil-lista .adm-lista { display:flex; }
+    body.modo-admin.movil-lista .adm-conversacion { display:none; }
+    /* Cuando toca cliente → mostrar conversación */
+    body.modo-admin.movil-conversacion .adm-sidebar { display:none; }
+    body.modo-admin.movil-conversacion .adm-lista { display:none; }
+    body.modo-admin.movil-conversacion .adm-conversacion { display:flex; }
+    body.modo-admin.movil-conversacion .adm-conv-header .volver { display:block; }
+    body.modo-admin.movil-lista .adm-lista .buscador::before {
+      content:"← "; color:#F9A825;
+    }
+  }
+
+  /* Modo cliente en celular */
+  @media (max-width: 767px) {
+    body.modo-cliente .fila { max-width:85%; }
+  }
+</style>
+</head>
+<body class="modo-cliente">
+
+  <div class="demo-bar">
+    <span>🎨 Vista previa 3A.8.1 · Sin funcionalidad real, solo diseño</span>
+    <button onclick="toggleModoDemo()">Cambiar modo</button>
+  </div>
+
+  <header class="app-header">
+    <div class="logo">
+      <img src="logo.jpeg" alt="" onerror="this.parentElement.textContent='H'">
+    </div>
+    <div class="titulos">
+      <div class="mini">Centro Deportivo</div>
+      <div class="grande">HIGUITO</div>
+      <div class="sub">Chat</div>
+    </div>
+    <div class="acciones-header">
+      <button class="btn-header">🔒 Puntos</button>
+      <button class="btn-header">⚙️ Admin</button>
+    </div>
+  </header>
+
+  <div class="app-body">
+
+    <!-- ============ VISTA CLIENTE ============ -->
+    <div class="vista-cliente">
+      <div class="cliente-chat">
+
+        <div class="fila ia">
+          <div class="burbuja">¡Hola! Bienvenido a <b>Centro Deportivo Higuito</b> ⚽ Soy el asistente virtual y puedo ayudarte con reservas, horarios y precios.</div>
+          <div class="hora">🤖 IA · 3:15 pm</div>
+        </div>
+
+        <div class="fila cliente">
+          <div class="burbuja">¿Tienen la cancha disponible el viernes a las 7pm?</div>
+          <div class="hora">3:16 pm</div>
+        </div>
+
+        <div class="fila admin">
+          <div class="burbuja">¡Hola! Sí tenemos ese horario libre. ¿Te la reservo?</div>
+          <div class="hora">Higuito · 3:17 pm</div>
+        </div>
+
+        <div class="fila cliente">
+          <div class="burbuja">¡Sí porfa! Gracias 🙌</div>
+          <div class="hora">3:17 pm</div>
+        </div>
+
+      </div>
+      <div class="cliente-input">
+        <input type="text" placeholder="Escribí tu mensaje…">
+        <button>➤</button>
+      </div>
+    </div>
+
+    <!-- ============ VISTA ADMIN ============ -->
+    <div class="vista-admin">
+
+      <div class="adm-sidebar">
+        <div class="icono activo" data-label="Mensajes" title="Mensajes">
+          💬<span class="badge">7</span>
+        </div>
+        <div class="icono" data-label="Reservación" title="Reservación">📅</div>
+        <div class="icono" data-label="Notificaciones" title="Push">🔔</div>
+        <div class="icono" data-label="Encargados" title="Encargados">👥</div>
+        <div class="icono" data-label="Escáner" title="Escáner">📷</div>
+      </div>
+
+      <div class="adm-lista">
+        <div class="buscador">
+          <input type="text" placeholder="🔎 Buscar cliente…">
+        </div>
+        <div class="items">
+          <div class="item activo">
+            <div class="top">
+              <span class="nombre">Carlos Ramírez</span>
+              <span class="hora">3:12 pm</span>
+            </div>
+            <div class="tel">50688884321</div>
+            <div class="bottom">
+              <span class="ultimo">¿A qué hora abren mañana?</span>
+              <span class="noleidos">3</span>
+            </div>
+          </div>
+          <div class="item">
+            <div class="top">
+              <span class="nombre">María González</span>
+              <span class="hora">2:47 pm</span>
+            </div>
+            <div class="tel">50687651234</div>
+            <div class="bottom">
+              <span class="ultimo">Vos: Perfecto, te la reservé</span>
+            </div>
+          </div>
+          <div class="item">
+            <div class="top">
+              <span class="nombre">Luis Chaves</span>
+              <span class="hora">1:20 pm</span>
+            </div>
+            <div class="tel">50699887766</div>
+            <div class="bottom">
+              <span class="ultimo">IA: ¡Con gusto! ¿Otra cosa?</span>
+            </div>
+          </div>
+          <div class="item">
+            <div class="top">
+              <span class="nombre">Ana Solano</span>
+              <span class="hora">Ayer</span>
+            </div>
+            <div class="tel">50611223344</div>
+            <div class="bottom">
+              <span class="ultimo">Cliente: gracias!</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="adm-conversacion">
+        <div class="adm-conv-header">
+          <button class="volver" onclick="volverALista()">←</button>
+          <div class="avatar">CR</div>
+          <div class="info">
+            <div class="n">Carlos Ramírez</div>
+            <div class="s">50688884321 · en línea</div>
+          </div>
+        </div>
+        <div class="adm-conv-mensajes">
+          <div class="fila ia">
+            <div class="burbuja">¡Hola! ¿En qué te ayudo?</div>
+            <div class="hora">🤖 IA · 3:10 pm</div>
+          </div>
+          <div class="fila cliente">
+            <div class="burbuja">¿A qué hora abren mañana?</div>
+            <div class="hora">3:12 pm</div>
+          </div>
+        </div>
+        <div class="adm-conv-input">
+          <input type="text" placeholder="Escribí tu mensaje…">
+          <button>➤</button>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+<script>
+  // ============================================================
+  // 3A.8.1 — Solo demo visual, sin lógica funcional
+  // ============================================================
+  function toggleModoDemo(){
+    var b = document.body;
+    if (b.classList.contains('modo-cliente')) {
+      b.classList.remove('modo-cliente');
+      b.classList.add('modo-admin');
+    } else {
+      b.classList.remove('modo-admin');
+      b.classList.remove('movil-lista');
+      b.classList.remove('movil-conversacion');
+      b.classList.add('modo-cliente');
+    }
+  }
+
+  // En celular: al tocar el icono de mensajes se muestra la lista;
+  // al tocar un cliente se abre la conversación.
+  document.querySelectorAll('.adm-sidebar .icono').forEach(function(el){
+    el.addEventListener('click', function(){
+      document.body.classList.add('movil-lista');
+      document.body.classList.remove('movil-conversacion');
+    });
+  });
+  document.querySelectorAll('.adm-lista .item').forEach(function(el){
+    el.addEventListener('click', function(){
+      document.body.classList.remove('movil-lista');
+      document.body.classList.add('movil-conversacion');
+    });
+  });
+  function volverALista(){
+    document.body.classList.remove('movil-conversacion');
+    document.body.classList.add('movil-lista');
+  }
+</script>
+</body>
+</html>
