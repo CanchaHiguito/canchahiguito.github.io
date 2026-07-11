@@ -1,7 +1,7 @@
 {
   "name": "Centro Deportivo Higuito",
   "short_name": "C.Higuito",
-  "description": "Sistema de puntos — Jugá 10 y ganás 1 gratis",
+  "description": "Sistema de puntos y chat — Cancha Higuito",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",
@@ -9,7 +9,7 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "/logo.jpeg",
+      "src": "/logo-admin.jpg",
       "sizes": "512x512",
       "type": "image/jpeg",
       "purpose": "any maskable"

@@ -512,6 +512,8 @@ function enviarMensajeCliente(){
   enviarAlServidor(texto, true);
   // Pedir permiso push despues del primer envio real
   pedirPermisoPushSiCorresponde();
+  // Reintento defensivo: por si OneSignal aun no estaba listo
+  setTimeout(pedirPermisoPushSiCorresponde, 3000);
 }
 
 function enviarAlServidor(mensaje, mostrarBurbuja){
@@ -1208,21 +1210,21 @@ if (telefono) {
 }
 
 // ============================================================
-// FASE 3A.8.4 — Modo prueba: ocultar boton Admin con ?rol=cliente
-// Uso: canchahiguito.github.io/nuevo.html?rol=cliente
-// Efecto: oculta el boton "Admin" del header + salta el modal PIN
-// aunque el usuario lo intente (defensa doble).
-// Persiste durante la sesion mientras la URL tenga el parametro.
+// FASE 3A.8.4.1 — Rol de la sesion via URL
+// Default: cliente (boton Admin oculto)
+// Para entrar como admin: ?rol=admin (muestra boton Admin)
 // ============================================================
-(function activarModoPruebaCliente(){
+(function aplicarRolDeSesion(){
   try {
     var params = new URLSearchParams(window.location.search);
-    if (params.get("rol") !== "cliente") return;
-    document.querySelectorAll(".btn-header").forEach(function(b){
-      if (b.dataset.rol === "admin") b.style.display = "none";
-    });
-    // Marcar el body por si algun estilo futuro quiere aprovecharlo
-    document.body.classList.add("modo-prueba-cliente");
+    var rol = params.get("rol");
+    // Default es "cliente" — solo mostramos el boton Admin si viene rol=admin
+    if (rol !== "admin") {
+      document.querySelectorAll(".btn-header").forEach(function(b){
+        if (b.dataset.rol === "admin") b.style.display = "none";
+      });
+      document.body.classList.add("modo-prueba-cliente");
+    }
   } catch(e){}
 })();
 
