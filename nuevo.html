@@ -1167,7 +1167,9 @@ function inicializarOneSignal(){
 async function pedirPermisoPushSiCorresponde(){
   if (document.body.classList.contains("modo-admin")) return;
   if (!telefono) return;
-  if (localStorage.getItem(LS_PUSH_PEDIDO_KEY) === "si") return;
+  // 3A.8.4.3 - Ya NO cortamos por LS_PUSH_PEDIDO_KEY. Siempre revisamos
+    // el estado real de OneSignal para re-sincronizar el Player ID cada
+    // vez que cambia (reinstalacion, nuevo navegador, etc.).
   OneSignalDeferred.push(async function(OneSignal){
     try {
       var yaSuscrito = await OneSignal.User.PushSubscription.optedIn;
@@ -1196,7 +1198,10 @@ async function pedirPermisoPushSiCorresponde(){
 
 function guardarPlayerIdEnServidor(tel, playerId){
   var idAnterior = localStorage.getItem(LS_ONESIGNAL_KEY);
-  if (idAnterior === playerId) return;
+  // 3A.8.4.3 - Ya NO cortamos por idAnterior. Siempre sincronizamos el
+  // Player ID actual con el backend para asegurar que quede guardado en
+  // Suscripciones_Push y Clientes_Puntos, aunque el localStorage tenga
+  // el mismo valor.
   // Endpoint nuevo (3A.8.4.3): guarda en hoja Suscripciones_Push
   // aunque el cliente todavia no este registrado.
   var urlNuevo = SCRIPT_URL_PUNTOS + "?accion=guardarSubscripcion&telefono=" +
