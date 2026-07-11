@@ -1197,11 +1197,17 @@ async function pedirPermisoPushSiCorresponde(){
 function guardarPlayerIdEnServidor(tel, playerId){
   var idAnterior = localStorage.getItem(LS_ONESIGNAL_KEY);
   if (idAnterior === playerId) return;
-  var url = SCRIPT_URL_PUNTOS + "?accion=guardarPush&telefono=" +
-            encodeURIComponent(tel) + "&sub=" + encodeURIComponent(playerId);
-  fetch(url).then(function(){
+  // Endpoint nuevo (3A.8.4.3): guarda en hoja Suscripciones_Push
+  // aunque el cliente todavia no este registrado.
+  var urlNuevo = SCRIPT_URL_PUNTOS + "?accion=guardarSubscripcion&telefono=" +
+                 encodeURIComponent(tel) + "&playerId=" + encodeURIComponent(playerId);
+  fetch(urlNuevo).then(function(){
     localStorage.setItem(LS_ONESIGNAL_KEY, playerId);
   }).catch(function(){});
+  // Endpoint viejo (compatibilidad): guarda en Clientes_Puntos si existe.
+  var urlViejo = SCRIPT_URL_PUNTOS + "?accion=guardarPush&telefono=" +
+                 encodeURIComponent(tel) + "&sub=" + encodeURIComponent(playerId);
+  fetch(urlViejo).catch(function(){});
 }
 
 // Arranca OneSignal solo si somos cliente (con telefono cargado)
