@@ -1207,6 +1207,25 @@ if (telefono) {
   inicializarOneSignal();
 }
 
+// ============================================================
+// FASE 3A.8.4 — Modo prueba: ocultar boton Admin con ?rol=cliente
+// Uso: canchahiguito.github.io/nuevo.html?rol=cliente
+// Efecto: oculta el boton "Admin" del header + salta el modal PIN
+// aunque el usuario lo intente (defensa doble).
+// Persiste durante la sesion mientras la URL tenga el parametro.
+// ============================================================
+(function activarModoPruebaCliente(){
+  try {
+    var params = new URLSearchParams(window.location.search);
+    if (params.get("rol") !== "cliente") return;
+    document.querySelectorAll(".btn-header").forEach(function(b){
+      if (b.dataset.rol === "admin") b.style.display = "none";
+    });
+    // Marcar el body por si algun estilo futuro quiere aprovecharlo
+    document.body.classList.add("modo-prueba-cliente");
+  } catch(e){}
+})();
+
 </script>
 </body>
 </html>
