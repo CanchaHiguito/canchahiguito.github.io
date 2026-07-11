@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Higuito Chat</title>
 <meta name="theme-color" content="#000000">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="logo.jpeg">
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
 <style>
   /* ============================================================
      Higuito — Shell unificado (3A.8.1)
@@ -19,6 +22,37 @@
     display:flex; flex-direction:column;
     height:100vh; height:100dvh;
   }
+
+
+  /* ============ 3A.8.4: Banner de instalacion PWA ============ */
+  .install-banner {
+    position:fixed; top:0; left:0; right:0;
+    background:#F9A825; color:#000; padding:12px 14px;
+    display:none; align-items:center; gap:10px;
+    z-index:500; box-shadow:0 2px 8px rgba(0,0,0,0.4);
+    animation:baja 0.3s ease-out;
+  }
+  .install-banner.visible { display:flex; }
+  .install-banner .install-icono { font-size:22px; flex-shrink:0; }
+  .install-banner .install-texto {
+    flex:1; font-size:13px; font-weight:600; line-height:1.3;
+  }
+  .install-banner .install-cerrar {
+    background:none; border:none; color:#000; font-size:22px;
+    padding:0 6px; cursor:pointer; flex-shrink:0; opacity:0.5;
+  }
+  .install-banner .install-cerrar:hover { opacity:1; }
+  .install-banner .install-btn {
+    background:#2E7D32; color:#fff; border:none; border-radius:8px;
+    padding:9px 14px; font-size:13px; font-weight:bold;
+    cursor:pointer; flex-shrink:0;
+  }
+  @keyframes baja {
+    from { transform:translateY(-100%); }
+    to   { transform:translateY(0); }
+  }
+  /* Cuando el banner esta visible, el header se desplaza */
+  body.banner-visible .app-header { margin-top:56px; }
 
   /* ========== FILA SUPERIOR (siempre visible) ========== */
   .app-header {
@@ -274,6 +308,14 @@
 </head>
 <body class="modo-cliente">
 
+  <div class="install-banner" id="install-banner">
+    <div class="install-icono">📲</div>
+    <div class="install-texto">Instalá Higuito para no volver a ingresar tu teléfono</div>
+    <button class="install-btn" onclick="instalarPWA()">Instalar</button>
+    <button class="install-cerrar" onclick="cerrarBannerInstalacion()" aria-label="Cerrar">×</button>
+  </div>
+
+
   <header class="app-header">
     <div class="logo">
       <img src="logo.jpeg" alt="" onerror="this.parentElement.textContent='H'">
@@ -412,6 +454,8 @@ function guardarTelefono(){
   localStorage.setItem(LS_KEY, telefono);
   document.getElementById("modal-telefono").style.display = "none";
   iniciarConversacion();
+  // Arrancar OneSignal ahora que ya tenemos telefono
+  if (typeof inicializarOneSignal === "function") inicializarOneSignal();
 }
 
 document.getElementById("input-tel").addEventListener("keydown", function(e){
@@ -466,6 +510,8 @@ function enviarMensajeCliente(){
   if (!texto || enviando) return;
   caja.value = "";
   enviarAlServidor(texto, true);
+  // Pedir permiso push despues del primer envio real
+  pedirPermisoPushSiCorresponde();
 }
 
 function enviarAlServidor(mensaje, mostrarBurbuja){
@@ -1027,6 +1073,140 @@ document.querySelectorAll(".adm-sidebar .icono").forEach(function(el){
     }
   });
 });
+
+// ============================================================
+// FASE 3A.8.4 — Banner instalacion PWA + suscripcion push
+// ============================================================
+
+var ONESIGNAL_APP_ID = "d6d09ae0-c72c-4d74-a310-d8dcc0a831e3";
+var SCRIPT_URL_PUNTOS = "https://script.google.com/macros/s/AKfycbyqLy7UxAQ_myUgBL0eXpGGDRn8C0XVoXACyu94z8VYuESaiPKf3wJNIfIJvuFeQHIa/exec";
+var LS_BANNER_KEY = "higuito_banner_cerrado_ts";
+var LS_ONESIGNAL_KEY = "higuito_onesignal_id";
+var LS_PUSH_PEDIDO_KEY = "higuito_push_ya_pedido";
+var BANNER_TTL_DIAS = 7;
+var promptInstalacion = null;
+
+// ---------- DETECCION DE PWA INSTALADA ----------
+function pwaYaInstalada(){
+  if (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) return true;
+  if (window.navigator.standalone === true) return true;
+  return false;
+}
+
+// ---------- BANNER DE INSTALACION ----------
+function mostrarBannerInstalacion(){
+  if (pwaYaInstalada()) return;
+  if (document.body.classList.contains("modo-admin")) return;
+  if (!promptInstalacion) return;
+  var cerradoTs = parseInt(localStorage.getItem(LS_BANNER_KEY) || "0", 10);
+  var ahora = Date.now();
+  var msTope = BANNER_TTL_DIAS * 24 * 60 * 60 * 1000;
+  if (cerradoTs && (ahora - cerradoTs) < msTope) return;
+  var b = document.getElementById("install-banner");
+  b.classList.add("visible");
+  document.body.classList.add("banner-visible");
+}
+
+function cerrarBannerInstalacion(){
+  var b = document.getElementById("install-banner");
+  b.classList.remove("visible");
+  document.body.classList.remove("banner-visible");
+  localStorage.setItem(LS_BANNER_KEY, Date.now().toString());
+}
+
+function instalarPWA(){
+  if (!promptInstalacion) {
+    alert("Tu navegador no soporta instalación automática. Probá desde el menú del navegador → 'Agregar a pantalla de inicio'.");
+    return;
+  }
+  promptInstalacion.prompt();
+  promptInstalacion.userChoice.then(function(r){
+    if (r.outcome === "accepted") {
+      cerrarBannerInstalacion();
+      localStorage.removeItem(LS_BANNER_KEY);
+    }
+    promptInstalacion = null;
+  });
+}
+
+window.addEventListener("beforeinstallprompt", function(e){
+  e.preventDefault();
+  promptInstalacion = e;
+  setTimeout(mostrarBannerInstalacion, 500);
+});
+
+window.addEventListener("appinstalled", function(){
+  cerrarBannerInstalacion();
+  localStorage.removeItem(LS_BANNER_KEY);
+});
+
+// ---------- ONESIGNAL PUSH (para clientes, nunca admin) ----------
+window.OneSignalDeferred = window.OneSignalDeferred || [];
+
+function inicializarOneSignal(){
+  if (document.body.classList.contains("modo-admin")) return;
+  OneSignalDeferred.push(async function(OneSignal){
+    try {
+      await OneSignal.init({
+        appId: ONESIGNAL_APP_ID,
+        notifyButton: { enable: false },
+        autoResubscribe: true,
+        serviceWorkerParam: { scope: "/" },
+        serviceWorkerPath: "OneSignalSDKWorker.js"
+      });
+      var idExistente = await OneSignal.User.PushSubscription.id;
+      if (idExistente && telefono) {
+        guardarPlayerIdEnServidor(telefono, idExistente);
+      }
+    } catch(e){}
+  });
+}
+
+async function pedirPermisoPushSiCorresponde(){
+  if (document.body.classList.contains("modo-admin")) return;
+  if (!telefono) return;
+  if (localStorage.getItem(LS_PUSH_PEDIDO_KEY) === "si") return;
+  OneSignalDeferred.push(async function(OneSignal){
+    try {
+      var yaSuscrito = await OneSignal.User.PushSubscription.optedIn;
+      if (yaSuscrito) {
+        var id = await OneSignal.User.PushSubscription.id;
+        if (id && telefono) guardarPlayerIdEnServidor(telefono, id);
+        localStorage.setItem(LS_PUSH_PEDIDO_KEY, "si");
+        return;
+      }
+      await OneSignal.Notifications.requestPermission();
+      var permiso = OneSignal.Notifications.permission;
+      if (permiso) {
+        await OneSignal.User.PushSubscription.optIn();
+        var id2 = await OneSignal.User.PushSubscription.id;
+        if (id2 && telefono) {
+          localStorage.setItem(LS_ONESIGNAL_KEY, id2);
+          guardarPlayerIdEnServidor(telefono, id2);
+        }
+      }
+      localStorage.setItem(LS_PUSH_PEDIDO_KEY, "si");
+    } catch(e){
+      localStorage.setItem(LS_PUSH_PEDIDO_KEY, "si");
+    }
+  });
+}
+
+function guardarPlayerIdEnServidor(tel, playerId){
+  var idAnterior = localStorage.getItem(LS_ONESIGNAL_KEY);
+  if (idAnterior === playerId) return;
+  var url = SCRIPT_URL_PUNTOS + "?accion=guardarPush&telefono=" +
+            encodeURIComponent(tel) + "&sub=" + encodeURIComponent(playerId);
+  fetch(url).then(function(){
+    localStorage.setItem(LS_ONESIGNAL_KEY, playerId);
+  }).catch(function(){});
+}
+
+// Arranca OneSignal solo si somos cliente (con telefono cargado)
+if (telefono) {
+  inicializarOneSignal();
+}
+
 </script>
 </body>
 </html>
