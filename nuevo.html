@@ -247,6 +247,19 @@
   }
   .hora { font-size:10px; color:#888; margin-top:3px; }
   .fila.cliente .hora { text-align:right; }
+  /* Bandeja del admin: mis mensajes a la derecha, los del cliente a la izquierda */
+  .adm-conv-mensajes .fila.admin { align-self:flex-end; align-items:flex-end; }
+  .adm-conv-mensajes .fila.cliente { align-self:flex-start; align-items:flex-start; }
+  .adm-conv-mensajes .admin .burbuja {
+    background:#B71C1C; color:#fff;
+    border-right:6px solid #F9A825; border-top-right-radius:4px;
+    box-shadow:3px 3px 8px rgba(183,28,28,0.5);
+  }
+  .adm-conv-mensajes .cliente .burbuja {
+    background:#2a2a2a; color:#fff;
+    border-left:6px solid #F9A825; border-top-left-radius:4px;
+    box-shadow:-3px 3px 8px rgba(249,168,37,0.35);
+  }
 
   /* ========== RESPONSIVE — CELULAR ========== */
   @media (max-width: 767px) {
