@@ -2,7 +2,7 @@
   "name": "Centro Deportivo Higuito",
   "short_name": "C.Higuito",
   "description": "Chat y sistema de puntos — Cancha Higuito",
-  "start_url": "/nuevo.html",
+  "start_url": "/index.html",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#000000",
