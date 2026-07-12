@@ -469,10 +469,22 @@ function iniciarConversacion(){
       ultimoConteoMensajes = 0;
       enviarAlServidor("__inicio__", false);
       iniciarPollingChat();
+    } else {
+      verificarRegistroSilencioso();
     }
   });
 }
 
+function verificarRegistroSilencioso(){
+  if (!telefono) return;
+  fetch(SCRIPT_URL_PUNTOS + "?accion=verificar&telefono=" + encodeURIComponent(telefono))
+  .then(function(r){ return r.json(); })
+  .then(function(data){
+    registrado = !!(data && data.encontrado);
+    actualizarBotonPuntos();
+  })
+  .catch(function(){});
+}
 function cargarHistorialCliente(callback){
   if (!telefono) { callback(false); return; }
   fetch(SCRIPT_AGENDA, {
