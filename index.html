@@ -723,7 +723,7 @@ document.querySelectorAll(".btn-header").forEach(function(b){
   if (b.dataset.rol === "puntos") {
     b.addEventListener("click", function(){
       if (registrado) {
-        window.location.href = "index.html";
+        alert("⚙️ El sistema de puntos está en construcción.\n\n¡Pronto vas a poder ver tus puntos y tu QR desde acá! 🏆");
       } else {
         if (!enviando) enviarAlServidor("__puntos__", false);
       }
