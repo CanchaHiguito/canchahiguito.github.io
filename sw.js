@@ -1,5 +1,5 @@
 importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js');
-const CACHE_NAME = 'higuito-v10';
+const CACHE_NAME = 'higuito-v11';
 const urlsToCache = ['/', '/index.html', '/manifest.json'];
 self.addEventListener('install', event => {
   self.skipWaiting();
