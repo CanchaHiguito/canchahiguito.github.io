@@ -321,6 +321,10 @@
 </head>
 <body class="modo-cliente">
 
+  <div id="banner-actualizacion" style="display:none; position:fixed; top:0; left:0; right:0; background:#B71C1C; color:#fff; padding:12px 16px; text-align:center; font-size:14px; font-weight:bold; z-index:600; box-shadow:0 2px 8px rgba(0,0,0,0.4);">
+    🔄 Hay una nueva versión disponible
+    <button onclick="aplicarActualizacion()" style="margin-left:12px; background:#F9A825; color:#000; border:none; padding:6px 14px; border-radius:6px; font-weight:bold; cursor:pointer;">Actualizar</button>
+  </div>
   <div class="install-banner" id="install-banner">
     <div class="install-icono">📲</div>
     <div class="install-texto">Instalá Higuito para no volver a ingresar tu teléfono</div>
@@ -1263,6 +1267,48 @@ if (telefono) {
     }
   } catch(e){}
 })();
+
+  // ============================================================
+// BANNER DE ACTUALIZACION AUTOMATICA
+// ============================================================
+var registroSW = null;
+
+function mostrarBannerActualizacion() {
+  document.getElementById('banner-actualizacion').style.display = 'block';
+}
+
+function aplicarActualizacion() {
+  if (registroSW && registroSW.waiting) {
+    registroSW.waiting.postMessage({ type: 'SKIP_WAITING' });
+  }
+}
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/sw.js').then(function(reg) {
+      registroSW = reg;
+      if (reg.waiting) mostrarBannerActualizacion();
+      reg.addEventListener('updatefound', function() {
+        var nuevoSW = reg.installing;
+        if (!nuevoSW) return;
+        nuevoSW.addEventListener('statechange', function() {
+          if (nuevoSW.state === 'installed' && navigator.serviceWorker.controller) {
+            mostrarBannerActualizacion();
+          }
+        });
+      });
+    });
+    var recargando = false;
+    navigator.serviceWorker.addEventListener('controllerchange', function() {
+      if (recargando) return;
+      recargando = true;
+      window.location.reload();
+    });
+    setInterval(function() {
+      if (registroSW) registroSW.update();
+    }, 60000);
+  });
+}
 
 </script>
 </body>
