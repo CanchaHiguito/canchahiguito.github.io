@@ -1278,8 +1278,13 @@ function mostrarBannerActualizacion() {
 }
 
 function aplicarActualizacion() {
+  var btn = document.querySelector('#banner-actualizacion button');
+  if (btn) { btn.textContent = 'Actualizando...'; btn.disabled = true; }
   if (registroSW && registroSW.waiting) {
     registroSW.waiting.postMessage({ type: 'SKIP_WAITING' });
+    setTimeout(function(){ window.location.reload(); }, 1500);
+  } else {
+    window.location.reload();
   }
 }
 
@@ -1298,6 +1303,12 @@ if ('serviceWorker' in navigator) {
         });
       });
     });
+   setTimeout(function(){
+      if (registroSW && !registroSW.waiting) {
+        var b = document.getElementById('banner-actualizacion');
+        if (b) b.style.display = 'none';
+      }
+    }, 3000);
     var recargando = false;
     navigator.serviceWorker.addEventListener('controllerchange', function() {
       if (recargando) return;
